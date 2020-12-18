@@ -5,18 +5,19 @@ const path = `${config.path}/src/main/resources/`;
 const mod_id = config.mod_id;
 
 const dirs = {
-    blockstates: `${path}assets/${mod_id}/blockstates/`,
-    block_models: `${path}assets/${mod_id}/models/block/`,
-    item_models: `${path}assets/${mod_id}/models/item/`,
-    loot_tables: `${path}data/${mod_id}/loot_tables/blocks/`,
-    recipes: `${path}data/${mod_id}/recipes/`,
-    tags: `${path}data/minecraft/tags/`,
-    lang: `${path}assets/${mod_id}/lang/en_us.json`
+    blockstates: `${path}assets/${mod_id}/blockstates`,
+    block_models: `${path}assets/${mod_id}/models/block`,
+    item_models: `${path}assets/${mod_id}/models/item`,
+    loot_tables: `${path}data/${mod_id}/loot_tables/blocks`,
+    recipes: `${path}data/${mod_id}/recipes`,
+    tags: `${path}data/minecraft/tags`,
+    lang: `${path}assets/${mod_id}/lang`
 };
 
 const dyes = ['red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'light_blue', 'blue', 'magenta', 'purple', 'pink', 'white', 'light_gray', 'gray', 'black', 'brown'];
 
 let tagValues = new Map();
+let recipes = new Map();
 
 function create_blockstate(name, type) {
     let blockstate;
@@ -135,11 +136,17 @@ function create_blockstate(name, type) {
                     "type=double": { "model": `${mod_id}:block/${name}` }
                 }
             }
+
             fileName = `${name}_slab`;
+
             let arr = tagValues.get('slabs');
+
             if (!arr) arr = [];
+
             arr.push(`${name}_slab`);
+
             tagValues.set('slabs', arr);
+
             break;
         }
         case 'stairs': {
@@ -187,11 +194,52 @@ function create_blockstate(name, type) {
                     "facing=north,half=top,shape=inner_left": { "model": `${mod_id}:block/${name}_stairs_inner`, "x": 180, "y": 270, "uvlock": true }
                 }
             }
+
             fileName = `${name}_stairs`;
+
             let arr = tagValues.get('stairs');
+
             if (!arr) arr = [];
+
             arr.push(`${name}_stairs`);
+
             tagValues.set('stairs', arr);
+
+            break;
+        }
+        case 'fence': {
+            blockstate = {
+                "multipart": [
+                    { "apply": { "model": `block/${name}_fence_post` } },
+                    {
+                        "when": { "north": "true" },
+                        "apply": { "model": `block/${name}_fence_side`, "uvlock": true }
+                    },
+                    {
+                        "when": { "east": "true" },
+                        "apply": { "model": `block/${name}_fence_side`, "y": 90, "uvlock": true }
+                    },
+                    {
+                        "when": { "south": "true" },
+                        "apply": { "model": `block/${name}_fence_side`, "y": 180, "uvlock": true }
+                    },
+                    {
+                        "when": { "west": "true" },
+                        "apply": { "model": `block/${name}_fence_side`, "y": 270, "uvlock": true }
+                    }
+                ]
+            }
+
+            fileName = `${name}_fence`;
+
+            let arr = tagValues.get('fences');
+
+            if (!arr) arr = [];
+
+            arr.push(`${name}_fence`);
+
+            tagValues.set('fences', arr);
+
             break;
         }
         default: {
@@ -207,9 +255,8 @@ function create_blockstate(name, type) {
         }
     }
 
-    fs.writeFile(`${dirs.blockstates}${fileName}.json`, JSON.stringify(blockstate), (err, result) => {
-        if (err) console.log(err);
-    });
+    writeToFile(dirs.blockstates, `${fileName}.json`, JSON.stringify(blockstate))
+        .catch(err => console.log(err));
 }
 
 function create_block_model(name, type) {
@@ -286,6 +333,26 @@ function create_block_model(name, type) {
                     "side": `${mod_id}:block/${name}`
                 }
             });
+            break;
+        }
+        case 'fence': {
+            models.set(`${name}_fence_post`, {
+                "parent": "minecraft:block/inner_stairs",
+                "textures": {
+                    "bottom": `${mod_id}:block/${name}`,
+                    "top": `${mod_id}:block/${name}`,
+                    "side": `${mod_id}:block/${name}`
+                }
+            });
+            models.set(`${name}_fence_side`, {
+                "parent": "minecraft:block/inner_stairs",
+                "textures": {
+                    "bottom": `${mod_id}:block/${name}`,
+                    "top": `${mod_id}:block/${name}`,
+                    "side": `${mod_id}:block/${name}`
+                }
+            });
+            break;
         }
         default: {
             models.set(name, {
@@ -299,15 +366,15 @@ function create_block_model(name, type) {
     }
 
     models.forEach((v, k, m) => {
-        fs.writeFile(`${dirs.block_models}${k}.json`, JSON.stringify(v), (err, result) => {
-            if (err) console.log(err);
-        })
+        writeToFile(dirs.block_models, `${k}.json`, JSON.stringify(v))
+            .catch(err => console.log(err));
     });
 }
 
 function create_item_model(name, type) {
     let model;
     let fileName;
+
     switch (type) {
         case 'wall': {
             model = {
@@ -320,14 +387,21 @@ function create_item_model(name, type) {
             model = {
                 "parent": `${mod_id}:block/${name}_slab`
             };
-            fileName = `${name}_slab`
+            fileName = `${name}_slab`;
             break;
         }
         case 'stairs': {
             model = {
                 "parent": `${mod_id}:block/${name}_stairs`
             };
-            fileName = `${name}_stairs`
+            fileName = `${name}_stairs`;
+            break;
+        }
+        case 'fence': {
+            model = {
+                "parent": `${mod_id}:block/${name}_fence`
+            };
+            fileName = `${name}_fence`;
             break;
         }
         default: {
@@ -339,16 +413,14 @@ function create_item_model(name, type) {
         }
     }
 
-    fs.writeFile(`${dirs.item_models}${fileName}.json`, JSON.stringify(model), (err, result) => {
-        if (err) console.log(err);
-    })
+    writeToFile(dirs.item_models, `${fileName}.json`, JSON.stringify(model))
+        .catch(err => console.log(err));
 }
 
 function create_recipe(name, type, material) {
-    let recipes = new Map();
     switch (type) {
         case 'wall': {
-            recipes.set(`crafting/walls/${name}_wall`, {
+            recipes.set({path: `crafting/walls`, name: `${name}_wall`}, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb",
@@ -364,7 +436,7 @@ function create_recipe(name, type, material) {
                     "count": 6
                 }
             });
-            recipes.set(`stonecutting/walls/${name}_wall`, {
+            recipes.set({path: `stonecutting/walls`, name: `${name}_wall`}, {
                 "type": "minecraft:stonecutting",
                 "ingredient": {
                     "item": `${mod_id}:${name}`
@@ -375,7 +447,7 @@ function create_recipe(name, type, material) {
             break;
         }
         case 'slab': {
-            recipes.set(`crafting/slabs/${name}_slab`, {
+            recipes.set({path: `crafting/slabs`, name: `${name}_slab`}, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb"
@@ -391,7 +463,7 @@ function create_recipe(name, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set(`stonecutting/slabs/${name}_slab`, {
+                recipes.set({path: `stonecutting/slabs`, name: `${name}_slab`}, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": `${mod_id}:${name}`
@@ -402,7 +474,7 @@ function create_recipe(name, type, material) {
             break;
         }
         case 'stairs': {
-            recipes.set(`crafting/stairs/${name}_stairs`, {
+            recipes.set({path: `crafting/stairs`, name: `${name}_stairs`}, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "b  ",
@@ -420,7 +492,7 @@ function create_recipe(name, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set(`stonecutting/stairs/${name}_stairs`, {
+                recipes.set({path: `stonecutting/stairs`, name: `${name}_stairs`}, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": `${mod_id}:${name}`
@@ -430,18 +502,33 @@ function create_recipe(name, type, material) {
                 });
             break;
         }
+        case 'fence': {
+            recipes.set({path: `crafting/fences`, name: `${name}_fence`}, {
+                "type": "minecraft:crafting_shaped",
+                "pattern": [
+                    "bsb",
+                    "bsb"
+                ],
+                "key": {
+                    "b": {
+                        "item": `${mod_id}:${name}`
+                    },
+                    "s": {
+                        "item": `minecraft:stick`
+                    }
+                },
+                "result": {
+                    "item": `${mod_id}:${name}_fence`,
+                    "count": 6
+                }
+            });
+            break;
+        }
     }
-
-    recipes.forEach((v, k, m) => {
-        fs.writeFile(`${dirs.recipes}${k}.json`, JSON.stringify(v), (err, result) => {
-            if (err) console.log(err);
-        });
-    });
 }
 
 function create_dye_recipe(name, block, dye) {
-    let recipes = new Map();
-    recipes.set(`crafting/blocks/${name}`, {
+    recipes.set({path: `crafting/blocks`, name}, {
         "type": "minecraft:crafting_shaped",
         "pattern": [
             "bbb",
@@ -461,12 +548,6 @@ function create_dye_recipe(name, block, dye) {
             "count": 8
         }
     });
-
-    recipes.forEach((v, k, m) => {
-        fs.writeFile(`${dirs.recipes}crafting/blocks/${name}.json`, JSON.stringify(v), (err, result) => {
-            if (err) console.log(err);
-        })
-    })
 }
 
 function create_loot_table(name, drops = 'self') {
@@ -490,14 +571,13 @@ function create_loot_table(name, drops = 'self') {
         ]
     };
 
-    fs.writeFile(`${dirs.loot_tables}${name}.json`, JSON.stringify(table), (err, result) => {
-        if (err) console.log(err);
-    });
+    writeToFile(dirs.loot_tables, `${name}.json`, JSON.stringify(table))
+        .catch(err => console.log(err));
 }
 
 function addTags(map) {
     map.forEach((v, k, m) => {
-        readFile(`${dirs.tags}blocks/${k}.json`, `{"replace": false,"values": []}`)
+        readFile(`${dirs.tags}/blocks`, `${k}.json`, `{"replace": false,"values": []}`)
             .then(data => {
                 let json = JSON.parse(data);
 
@@ -505,12 +585,12 @@ function addTags(map) {
                     if (!json.values.includes(`${mod_id}:${v[i]}`))
                         json.values.push(`${mod_id}:${v[i]}`);
 
-                writeToFile(`${dirs.tags}blocks/${k}.json`, JSON.stringify(json))
-                    .catch(err => console.log(err));            
+                writeToFile(`${dirs.tags}/blocks`, `${k}.json`, JSON.stringify(json))
+                    .catch(err => console.log(err));
             })
             .catch(err => console.log(err));
-        
-        readFile(`${dirs.tags}items/${k}.json`, `{"replace": false,"values": []}`)
+
+        readFile(`${dirs.tags}/items`, `${k}.json`, `{"replace": false,"values": []}`)
             .then(data => {
                 let json = JSON.parse(data);
 
@@ -518,63 +598,95 @@ function addTags(map) {
                     if (!json.values.includes(`${mod_id}:${v[i]}`))
                         json.values.push(`${mod_id}:${v[i]}`);
 
-                writeToFile(`${dirs.tags}items/${k}.json`, JSON.stringify(json))
+                writeToFile(`${dirs.tags}/items`, `${k}.json`, JSON.stringify(json))
                     .catch(err => console.log(err));
             })
             .catch(err => console.log(err));
     });
 }
 
+function addRecipes(map) {
+    return new Promise((resolve, reject) => {
+        let arr = [];
+        map.forEach((v, k, m) => {
+            arr.push(writeToFile(`${dirs.recipes}/${k.path}`, `${k.name}.json`, JSON.stringify(v)));
+        });
+
+        Promise.all(arr)
+            .then(r => resolve(r))
+            .catch(err => reject(err));
+    });
+}
+
+/*
+    16      Fence
+    8       Wall
+    4       Stairs
+    2       Slab
+    1       Dyed
+*/
+
 /**
  * 
- * @param {String} name 
- * @param {{wall:boolean,slab:boolean,stairs:boolean,dyed:boolean,drops:string}} options 
+ * @param {string} name 
+ * @param {number} options 
+ * @param {string} drops 
  */
-function generate(name, options = {}) {
-    console.log(name);
-    console.log(options);
-
+function generate(name, options = 0, drops = 'self') {
     const registryName = name.replace(/\s/g, '').toLowerCase();
     let json = {};
 
     create_blockstate(registryName, 'block');
     create_block_model(registryName, null);
     create_item_model(registryName, null);
-
-    if (!!options.drops)
-        create_loot_table(registryName, options.drops);
-    else
-        create_loot_table(registryName);
+    create_loot_table(registryName, drops);
 
     json[`block.${mod_id}.${registryName}`] = name;
 
-    if (!!options.wall) {
+    if (options >= 16) {
+        create_blockstate(registryName, 'fence');
+        create_block_model(registryName, 'fence');
+        create_item_model(registryName, 'fence');
+        create_recipe(registryName, 'fence', 'wood');
+        create_loot_table(`${registryName}_fence`);
+        json[`block.${mod_id}.${registryName}_fence`] = `${name} Fence`;
+        
+        options -= 16;
+    }
+    if (options >= 8) {
         create_blockstate(registryName, 'wall');
         create_block_model(registryName, 'wall');
         create_item_model(registryName, 'wall');
         create_recipe(registryName, 'wall', 'rock');
         create_loot_table(`${registryName}_wall`);
         json[`block.${mod_id}.${registryName}_wall`] = `${name} Wall`;
+
+        options -= 8;
     }
-    if (!!options.slab) {
-        create_blockstate(registryName, 'slab');
-        create_block_model(registryName, 'slab');
-        create_item_model(registryName, 'slab');
-        create_recipe(registryName, 'slab', 'rock');
-        create_loot_table(`${registryName}_slab`);
-        json[`block.${mod_id}.${registryName}_slab`] = `${name} Slab`;
-    }
-    if (!!options.stairs) {
+    if (options >= 4) {
         create_blockstate(registryName, 'stairs');
         create_block_model(registryName, 'stairs');
         create_item_model(registryName, 'stairs');
         create_recipe(registryName, 'stairs', 'rock');
         create_loot_table(`${registryName}_stairs`);
         json[`block.${mod_id}.${registryName}_stairs`] = `${name} Stairs`;
+
+        options -= 4;
+    }
+    if (options >= 2) {
+        create_blockstate(registryName, 'slab');
+        create_block_model(registryName, 'slab');
+        create_item_model(registryName, 'slab');
+        create_recipe(registryName, 'slab', 'rock');
+        create_loot_table(`${registryName}_slab`);
+        json[`block.${mod_id}.${registryName}_slab`] = `${name} Slab`;
+
+        options -= 2;
     }
 
-    if (!!options.dyed) {
-        options.dyed = false;
+    if (options == 1) {
+        options--;
+
         let arr = [];
         for (let i in dyes) {
             let a = dyes[i].split('_');
@@ -583,7 +695,7 @@ function generate(name, options = {}) {
                 a[b] = `${a[b][0].toUpperCase()}${a[b].slice(1)}`;
             }
 
-            arr.push(generate(`${a.join(' ')} Stained ${name}`, options));
+            arr.push(generate(`${a.join(' ')} Stained ${name}`, options, drops));
             create_dye_recipe(`${dyes[i].replace('_', '')}stained${registryName}`, registryName, dyes[i]);
         }
 
@@ -597,13 +709,15 @@ function generate(name, options = {}) {
     return json;
 }
 
-function readFile(path, defaultText = '') {
+function readFile(path, fileName, defaultText = '') {
     return new Promise((resolve, reject) => {
-        fs.readFile(path, 'utf8', (err, data) => {
+        console.log('Reading file: ', `${path}/${fileName}`)
+
+        fs.readFile(`${path}/${fileName}`, 'utf8', (err, data) => {
             if (err) {
                 if (err.code == 'ENOENT') {
-                    writeToFile(path, defaultText)
-                        .then(() => resolve({}))
+                    writeToFile(path, fileName, defaultText)
+                        .then(() => resolve(defaultText))
                         .catch(err => reject(err));
                 }
                 else
@@ -615,35 +729,44 @@ function readFile(path, defaultText = '') {
     })
 }
 
-function writeToFile(path, str) {
+function writeToFile(path, fileName, str) {
     return new Promise((resolve, reject) => {
-        fs.writeFile(path, str, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
+        fs.writeFile(`${path}/${fileName}`, str, (err, result) => {
+            if (err) {
+                if (err.code == 'ENOENT') {
+                    console.log('Here', path, !fs.existsSync(path))
+                    if (!fs.existsSync(path))
+                        fs.mkdirSync(path, {recursive: true});
+
+                    writeToFile(path, fileName, str)
+                        .then(result => resolve(result))
+                        .catch(err => reject(err));
+                }
+                else
+                    reject(err);
+            }
+            else
+                resolve(result);
         });
     });
 }
 
 function langs(jsonArr) {
     return new Promise((resolve, reject) => {
-        fs.readFile(dirs.lang, 'utf8', (err, data) => {
-            if (err)
-                reject(err);
-            else {
-                let json = (data)
-                    ? JSON.parse(data)
-                    : {};
+        readFile(dirs.lang, `en_us.json`, '{}')
+            .then(data => {
+                console.log(data);
+                let json = JSON.parse(data);
 
                 for (let i in jsonArr) {
-                    for (let item in jsonArr[i]) {
+                    for (let item in jsonArr[i])
                         json[item] = jsonArr[i][item];
-                    }
                 }
 
-                resolve(writeToFile(dirs.lang, JSON.stringify(json)));
-            }
+                resolve(writeToFile(dirs.lang, `en_us.json`, JSON.stringify(json)))
+            })
+            .catch(err => reject(err));
         });
-    });
 }
 
 function generateBlocks(list) {
@@ -673,12 +796,20 @@ function etcLangs(list) {
     langs([json]);
 }
 
+/*
+    16      Fence
+    8       Wall
+    4       Stairs
+    2       Slab
+    1       Dyed
+*/
 const blocks = [
-    { name: "Test Block", options: { slab: true, stairs: true, wall: true } }
+    { name: "Test Block", options: (8 + 4 + 2) },
+    { name: "Test Wood", options: (16 + 4 + 2) }
 ];
 
 const ores = [
-    { name: "Test Ore", options: { drops: 'testitem' } }
+    { name: "Test Ore", options: 0, drops: 'testitem'}
 ]
 
 const groups = [
@@ -692,6 +823,8 @@ generateBlocks(blocks)
             .then(() => {
                 etcLangs(groups);
                 addTags(tagValues);
+                addRecipes(recipes)
+                    .catch(err => console.log(err));
             })
             .catch(e => console.log(e));
     })
