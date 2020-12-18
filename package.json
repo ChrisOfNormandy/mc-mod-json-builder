@@ -1,0 +1,14 @@
+{
+    "name": "mariwoah-bot-gui",
+    "version": "1.0.0",
+    "description": "Desc",
+    "main": "main.js",
+    "author": "Chris Hinton",
+    "dependencies": {
+        "nodemon": "^2.0.4",
+        "npm": "^6.14.5"
+    },
+    "repository": {},
+    "private": true,
+    "license": "GNU General Public License (GPL)"
+}
