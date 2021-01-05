@@ -645,8 +645,10 @@ function generate(name, options = 1, drops = 'self') {
         create_blockstate(registryName, 'fence');
         create_block_model(registryName, 'fence');
         create_item_model(registryName, 'fence');
-        create_recipe(registryName, 'fence', 'wood');
-        create_loot_table(`${registryName}_fence`);
+        if (options % 2 == 1) {
+            create_recipe(registryName, 'fence', 'wood');
+            create_loot_table(`${registryName}_fence`);
+        }
         json[`block.${mod_id}.${registryName}_fence`] = `${name} Fence`;
 
         options -= 16;
@@ -655,8 +657,10 @@ function generate(name, options = 1, drops = 'self') {
         create_blockstate(registryName, 'wall');
         create_block_model(registryName, 'wall');
         create_item_model(registryName, 'wall');
-        create_recipe(registryName, 'wall', 'rock');
-        create_loot_table(`${registryName}_wall`);
+        if (options % 2 == 1) {
+            create_recipe(registryName, 'wall', 'rock');
+            create_loot_table(`${registryName}_wall`);
+        }
         json[`block.${mod_id}.${registryName}_wall`] = `${name} Wall`;
 
         options -= 8;
@@ -665,8 +669,10 @@ function generate(name, options = 1, drops = 'self') {
         create_blockstate(registryName, 'stairs');
         create_block_model(registryName, 'stairs');
         create_item_model(registryName, 'stairs');
-        create_recipe(registryName, 'stairs', 'rock');
-        create_loot_table(`${registryName}_stairs`);
+        if (options % 2 == 1) {
+            create_recipe(registryName, 'stairs', 'rock');
+            create_loot_table(`${registryName}_stairs`);
+        }
         json[`block.${mod_id}.${registryName}_stairs`] = `${name} Stairs`;
 
         options -= 4;
@@ -675,8 +681,10 @@ function generate(name, options = 1, drops = 'self') {
         create_blockstate(registryName, 'slab');
         create_block_model(registryName, 'slab');
         create_item_model(registryName, 'slab');
-        create_recipe(registryName, 'slab', 'rock');
-        create_loot_table(`${registryName}_slab`);
+        if (options % 2 == 1) {
+            create_recipe(registryName, 'slab', 'rock');
+            create_loot_table(`${registryName}_slab`);
+        }
         json[`block.${mod_id}.${registryName}_slab`] = `${name} Slab`;
 
         options -= 2;
@@ -714,7 +722,7 @@ function readFile(path, fileName, defaultText = '') {
 
 function writeToFile(path, fileName, str) {
     return new Promise((resolve, reject) => {
-        console.log(`Writing file: `, path, fileName)
+        console.log(`Writing file: `, `${path}/${fileName}`)
         fs.writeFile(`${path}/${fileName}`, str, (err, result) => {
             if (err) {
                 if (err.code == 'ENOENT') {
@@ -779,10 +787,7 @@ function etcLangs(list) {
 */
 const blocks = require('./blocks.json');
 
-const groups = [
-    { registryName: `itemGroup.${mod_id}_blocks`, name: "Redemption | Blocks" },
-    { registryName: `itemGroup.${mod_id}_items`, name: "Redemption | Items" }
-];
+const groups = require('./groups');
 
 function _() {
     if (!fs.existsSync(`${path}/META-INF`)) {
