@@ -337,19 +337,15 @@ function create_block_model(name, type) {
         }
         case 'fence': {
             models.set(`${name}_fence_post`, {
-                "parent": "minecraft:block/inner_stairs",
+                "parent": "minecraft:block/fence_post",
                 "textures": {
-                    "bottom": `${mod_id}:block/${name}`,
-                    "top": `${mod_id}:block/${name}`,
-                    "side": `${mod_id}:block/${name}`
+                    "fence": `${mod_id}:block/${name}`
                 }
             });
             models.set(`${name}_fence_side`, {
-                "parent": "minecraft:block/inner_stairs",
+                "parent": "minecraft:block/fence_side",
                 "textures": {
-                    "bottom": `${mod_id}:block/${name}`,
-                    "top": `${mod_id}:block/${name}`,
-                    "side": `${mod_id}:block/${name}`
+                    "fence": `${mod_id}:block/${name}`
                 }
             });
             break;
@@ -399,7 +395,7 @@ function create_item_model(name, type) {
         }
         case 'fence': {
             model = {
-                "parent": `${mod_id}:block/${name}_fence`
+                "parent": `${mod_id}:block/${name}_fence_inventory`
             };
             fileName = `${name}_fence`;
             break;
@@ -420,7 +416,7 @@ function create_item_model(name, type) {
 function create_recipe(name, type, material) {
     switch (type) {
         case 'wall': {
-            recipes.set({path: `crafting/walls`, name: `${name}_wall`}, {
+            recipes.set({ path: `crafting/walls`, name: `${name}_wall` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb",
@@ -436,7 +432,7 @@ function create_recipe(name, type, material) {
                     "count": 6
                 }
             });
-            recipes.set({path: `stonecutting/walls`, name: `${name}_wall`}, {
+            recipes.set({ path: `stonecutting/walls`, name: `${name}_wall` }, {
                 "type": "minecraft:stonecutting",
                 "ingredient": {
                     "item": `${mod_id}:${name}`
@@ -447,7 +443,7 @@ function create_recipe(name, type, material) {
             break;
         }
         case 'slab': {
-            recipes.set({path: `crafting/slabs`, name: `${name}_slab`}, {
+            recipes.set({ path: `crafting/slabs`, name: `${name}_slab` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb"
@@ -463,7 +459,7 @@ function create_recipe(name, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set({path: `stonecutting/slabs`, name: `${name}_slab`}, {
+                recipes.set({ path: `stonecutting/slabs`, name: `${name}_slab` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": `${mod_id}:${name}`
@@ -474,7 +470,7 @@ function create_recipe(name, type, material) {
             break;
         }
         case 'stairs': {
-            recipes.set({path: `crafting/stairs`, name: `${name}_stairs`}, {
+            recipes.set({ path: `crafting/stairs`, name: `${name}_stairs` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "b  ",
@@ -492,7 +488,7 @@ function create_recipe(name, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set({path: `stonecutting/stairs`, name: `${name}_stairs`}, {
+                recipes.set({ path: `stonecutting/stairs`, name: `${name}_stairs` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": `${mod_id}:${name}`
@@ -503,7 +499,7 @@ function create_recipe(name, type, material) {
             break;
         }
         case 'fence': {
-            recipes.set({path: `crafting/fences`, name: `${name}_fence`}, {
+            recipes.set({ path: `crafting/fences`, name: `${name}_fence` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bsb",
@@ -528,7 +524,7 @@ function create_recipe(name, type, material) {
 }
 
 function create_dye_recipe(name, block, dye) {
-    recipes.set({path: `crafting/blocks`, name}, {
+    recipes.set({ path: `crafting/blocks`, name }, {
         "type": "minecraft:crafting_shaped",
         "pattern": [
             "bbb",
@@ -559,7 +555,7 @@ function create_loot_table(name, drops = 'self') {
                 "entries": [
                     {
                         "type": "minecraft:item",
-                        "name": (drops == 'self') ? `${mod_id}:${name}` : `${mod_id}:${drops}`
+                        "name": (drops == 'self') ? `${mod_id}:${name}` : drops
                     }
                 ],
                 "conditions": [
@@ -619,11 +615,12 @@ function addRecipes(map) {
 }
 
 /*
+    32      Dyed
     16      Fence
     8       Wall
     4       Stairs
     2       Slab
-    1       Dyed
+    1       Self
 */
 
 /**
@@ -632,17 +629,29 @@ function addRecipes(map) {
  * @param {number} options 
  * @param {string} drops 
  */
-function generate(name, options = 0, drops = 'self') {
+function generate(name, options = 1, drops = 'self') {
     const registryName = name.replace(/\s/g, '').toLowerCase();
     let json = {};
 
-    create_blockstate(registryName, 'block');
-    create_block_model(registryName, null);
-    create_item_model(registryName, null);
-    create_loot_table(registryName, drops);
+    if (options >= 32) {
+        let arr = [];
+        for (let i in dyes) {
+            let a = dyes[i].split('_');
 
-    json[`block.${mod_id}.${registryName}`] = name;
+            for (let b in a) {
+                a[b] = `${a[b][0].toUpperCase()}${a[b].slice(1)}`;
+            }
 
+            arr.push(generate(`${a.join(' ')} Stained ${name}`, options, drops));
+            create_dye_recipe(`${dyes[i].replace('_', '')}stained${registryName}`, registryName, dyes[i]);
+        }
+
+        for (let i in arr) {
+            for (let item in arr[i]) {
+                json[item] = arr[i][item];
+            }
+        }
+    }
     if (options >= 16) {
         create_blockstate(registryName, 'fence');
         create_block_model(registryName, 'fence');
@@ -650,7 +659,7 @@ function generate(name, options = 0, drops = 'self') {
         create_recipe(registryName, 'fence', 'wood');
         create_loot_table(`${registryName}_fence`);
         json[`block.${mod_id}.${registryName}_fence`] = `${name} Fence`;
-        
+
         options -= 16;
     }
     if (options >= 8) {
@@ -683,27 +692,12 @@ function generate(name, options = 0, drops = 'self') {
 
         options -= 2;
     }
-
-    if (options == 1) {
-        options--;
-
-        let arr = [];
-        for (let i in dyes) {
-            let a = dyes[i].split('_');
-
-            for (let b in a) {
-                a[b] = `${a[b][0].toUpperCase()}${a[b].slice(1)}`;
-            }
-
-            arr.push(generate(`${a.join(' ')} Stained ${name}`, options, drops));
-            create_dye_recipe(`${dyes[i].replace('_', '')}stained${registryName}`, registryName, dyes[i]);
-        }
-
-        for (let i in arr) {
-            for (let item in arr[i]) {
-                json[item] = arr[i][item];
-            }
-        }
+    if (options === 1) {
+        create_blockstate(registryName, 'block');
+        create_block_model(registryName, null);
+        create_item_model(registryName, null);
+        create_loot_table(registryName, drops);
+        json[`block.${mod_id}.${registryName}`] = name;
     }
 
     return json;
@@ -731,12 +725,12 @@ function readFile(path, fileName, defaultText = '') {
 
 function writeToFile(path, fileName, str) {
     return new Promise((resolve, reject) => {
+        console.log(`Writing file: `, path, fileName)
         fs.writeFile(`${path}/${fileName}`, str, (err, result) => {
             if (err) {
                 if (err.code == 'ENOENT') {
-                    console.log('Here', path, !fs.existsSync(path))
                     if (!fs.existsSync(path))
-                        fs.mkdirSync(path, {recursive: true});
+                        fs.mkdirSync(path, { recursive: true });
 
                     writeToFile(path, fileName, str)
                         .then(result => resolve(result))
@@ -755,7 +749,6 @@ function langs(jsonArr) {
     return new Promise((resolve, reject) => {
         readFile(dirs.lang, `en_us.json`, '{}')
             .then(data => {
-                console.log(data);
                 let json = JSON.parse(data);
 
                 for (let i in jsonArr) {
@@ -766,22 +759,13 @@ function langs(jsonArr) {
                 resolve(writeToFile(dirs.lang, `en_us.json`, JSON.stringify(json)))
             })
             .catch(err => reject(err));
-        });
+    });
 }
 
-function generateBlocks(list) {
+function generateBlock(list) {
     let jsons = [];
     for (let item in list) {
-        jsons.push(generate(list[item].name, list[item].options));
-    }
-
-    return langs(jsons);
-}
-
-function generateOres(list) {
-    let jsons = [];
-    for (let item in list) {
-        jsons.push(generate(list[item].name, list[item].options));
+        jsons.push(generate(list[item].name, list[item].options, list[item].drops));
     }
 
     return langs(jsons);
@@ -792,40 +776,52 @@ function etcLangs(list) {
     for (let i in list) {
         json[list[i].registryName] = list[i].name;
     }
-    console.log(json);
+
     langs([json]);
 }
 
 /*
+    32      Dyed
     16      Fence
     8       Wall
     4       Stairs
     2       Slab
-    1       Dyed
+    1       Self
 */
 const blocks = [
     { name: "Test Block", options: (8 + 4 + 2) },
-    { name: "Test Wood", options: (16 + 4 + 2) }
+    { name: "Test Wood", options: (16 + 4 + 2) },
+    { name: "Test Ore", options: 1, drops: `${mod_id}:testitem` },
+    { name: "Node Drop", options: 1 },
+    { name: "Test Node", options: 1, drops: `minecraft:stone` },
+    { name: "Test Node_3", options: 1, drops: `minecraft:stone` },
+    { name: "Test Node_2", options: 1, drops: `minecraft:stone` },
+    { name: "Test Node_1", options: 1, drops: `minecraft:stone` }
 ];
-
-const ores = [
-    { name: "Test Ore", options: 0, drops: 'testitem'}
-]
 
 const groups = [
     { registryName: `itemGroup.${mod_id}_blocks`, name: "Redemption | Blocks" },
     { registryName: `itemGroup.${mod_id}_items`, name: "Redemption | Items" }
 ];
 
-generateBlocks(blocks)
+if (!fs.existsSync(`${path}/META-INF`))
+    fs.mkdirSync(`${path}/META-INF`, { recursive: true });
+
+fs.copyFile(`./mods.toml`, `${path}/META-INF/mods.toml`, (err, result) => {
+    if (err)
+        console.log(err);
+});
+fs.copyFile(`./pack.mcmeta`, `${path}/pack.mcmeta`, (err, result) => {
+    if (err)
+        console.log(err);
+});
+
+generateBlock(blocks)
     .then(() => {
-        generateOres(ores)
-            .then(() => {
-                etcLangs(groups);
-                addTags(tagValues);
-                addRecipes(recipes)
-                    .catch(err => console.log(err));
-            })
-            .catch(e => console.log(e));
+        etcLangs(groups);
+        addTags(tagValues);
+        addRecipes(recipes)
+            .catch(err => console.log(err));
+
     })
     .catch(e => console.log(e));
