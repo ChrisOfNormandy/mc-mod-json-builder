@@ -429,6 +429,7 @@ const regex = {
 
 /*
     Options
+    5       Compacted   Use pattern as item, makes 3x3 recipe (no type needed).
     4       Dyed        Use pattern as item, makes 3;1{item}1;3 recipe (no type needed).
     3       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
     2       Smelted     Use pattern as item, makes smeltable to result (no type needed).
