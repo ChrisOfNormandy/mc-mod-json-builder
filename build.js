@@ -972,7 +972,7 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
 
             const _displayName = getDisplayName(getDyedName(name, dye));
             const _drops = {
-                name: getRegistryName(getDyedName(drops.name, dye)),
+                name: drops.name === 'self' ? getRegistryName(getDyedName(name, dye)) : getRegistryName(getDyedName(drops.name, dye)),
                 count: drops.count
             };
 
@@ -986,6 +986,9 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
         }
     }
     else {
+        if (drops.name === 'self')
+            drops.name = registryName;
+            
         if (options >= 16) {
             create_blockstate(registryName, 'fence');
             create_block_model(registryName, 'fence');
