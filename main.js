@@ -15,9 +15,14 @@ const dirs = {
 
 const dyes = ['red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'light_blue', 'blue', 'magenta', 'purple', 'pink', 'white', 'light_gray', 'gray', 'black', 'brown'];
 
+function getDyeItem(dye) {
+    return `minecraft:${dye}_dye`;
+}
+
 module.exports = {
     path,
     mod_id,
     dirs,
-    dyes
+    dyes,
+    getDyeItem
 }

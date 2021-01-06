@@ -402,6 +402,92 @@ function create_item_model(name, type) {
         .catch(err => console.log(err));
 }
 
+function getCraftingType(type) {
+    switch (type) {
+        case "shaped": return "minecraft:crafting_shaped"
+    }
+    return "minecraft:crafting_shaped"
+}
+
+const regex = {
+    dyeItem: /\{dyeItem\}/g,
+    dye: /\{dye\}/g,
+    mod_id: /\{mod_id\}/g
+};
+
+/*
+    Options
+    4       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
+    3       Cracked     Use pattern as item, makes smeltable (no type needed).
+    2       Mossy       Use pattern as item, adds vine item (no type needed).
+    1       Dyed        Use pattern as item, change {dyeItem}/{dye} to appropriate item/name
+*/
+function convert_recipe(recipe) {   
+    const name = recipe.result.includes('minecraft:')
+        ? recipe.result
+        : `${mod_id}:${recipe.result}`;
+        
+    const block = recipe.pattern.includes('minecraft:')
+        ? recipe.pattern
+        : `${mod_id}:${recipe.pattern}`;
+
+    switch (recipe.options) {
+        case 1: {
+            for (let i in dyes) {
+                create_dye_recipe(
+                    recipe.result.replace(regex.dye, dyes[i]),
+                    recipe.pattern,
+                    dyes[i]
+                );
+            }
+            return;
+        }
+        case 2: {
+            recipes.set({ path: `crafting/blocks`, name: recipe.result.replace('minecraft:', '') }, {
+                "type": "minecraft:crafting_shapeless",
+                "pattern": [
+                    "Xv"
+                ],
+                "key": {
+                    "X": {
+                        "item": block
+                    },
+                    "v": {
+                        "item": `minecraft:vine`
+                    }
+                },
+                "result": {
+                    "item": name,
+                    "count": 1
+                }
+            });
+            return;
+        }
+        case 3: {
+            return;
+        }
+        case 4: {
+            recipes.set({ path: `crafting/blocks`, name: recipe.result.replace('minecraft:', '') }, {
+                "type": "minecraft:crafting_shaped",
+                "pattern": [
+                    "XX",
+                    "XX"
+                ],
+                "key": {
+                    "X": {
+                        "item": block
+                    }
+                },
+                "result": {
+                    "item": name,
+                    "count": 4
+                }
+            });
+            return;
+        }
+    }
+}
+
 function create_recipe(name, type, material) {
     switch (type) {
         case 'wall': {
@@ -522,14 +608,18 @@ function create_dye_recipe(name, block, dye) {
         ],
         "key": {
             "b": {
-                "item": `${mod_id}:${block}`
+                "item": block.includes('minecraft:')
+                    ? block
+                    : `${mod_id}:${block}`
             },
             "X": {
                 "item": `minecraft:${dye}_dye`
             }
         },
         "result": {
-            "item": `${mod_id}:${name}`,
+            "item": name.includes('minecraft:')
+                ? name
+                : `${mod_id}:${name}`,
             "count": 8
         }
     });
@@ -809,6 +899,11 @@ function _() {
             .then(() => {
                 etcLangs(groups);
                 addTags(tagValues);
+
+                const list = require('./recipes.json');
+                for (let i in list)
+                    convert_recipe(list[i]);
+
                 addRecipes(recipes)
                     .catch(err => console.log(err));
 
