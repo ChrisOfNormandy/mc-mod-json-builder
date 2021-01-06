@@ -547,7 +547,7 @@ function convert_recipe(json) {
                 break;
             }
             case 2: {
-                recipes.set({ path: `smelting/${recipe.block == true ? 'blocks' : 'items'}`, name: recipe.fileName },
+                recipes.set({ path: `smelting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName },
                 {
                     "type": "minecraft:smelting",
                     "ingredient": {
@@ -560,7 +560,7 @@ function convert_recipe(json) {
                 break;
             }
             case 3: {
-                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XX",
@@ -579,7 +579,7 @@ function convert_recipe(json) {
                 break;
             }
             case 4: {
-                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XXX",
@@ -602,7 +602,7 @@ function convert_recipe(json) {
                 break;
             }
             case 5: {
-                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XXX",
@@ -620,7 +620,7 @@ function convert_recipe(json) {
                     }
                 });
                 if (recipe.complement) {
-                    recipes.set({ path: `crafting/blocks`, name: recipe.fileName_comp }, {
+                    recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName_comp }, {
                         "type": "minecraft:crafting_shapeless",
                         "pattern": [
                             "X"
