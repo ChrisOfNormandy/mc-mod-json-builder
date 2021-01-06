@@ -391,6 +391,16 @@ function create_item_model(name, type) {
             fileName = `${name}_fence`;
             break;
         }
+        case 'item': {
+            model = {
+                "parent": "minecraft:item/generated",
+                "textures": {
+                    "layer0": `minecraft:item/${name}`
+                }
+            };
+            fileName = name;
+            break;
+        }
         default: {
             model = {
                 "parent": `${mod_id}:block/${name}`
@@ -844,6 +854,24 @@ function generate(name, options = 1, drops = 'self') {
     return json;
 }
 
+function generateItem(name) {
+    const json = {};
+    if (regex.dye.test(name)) {
+        for (let i in dyes) {
+            const _name = name.replace(regex.dye, dyes[i]);
+            const registryName = _name.replace(' ', '_');
+            create_item_model(registryName, 'item');
+            json[`item.${mod_id}.${registryName}`] = `${_name}`;
+        }
+    }
+    else {
+        create_item_model(name, 'item');
+        json[`item.${mod_id}.${registryName}`] = name;
+    }
+
+    return json;
+}
+
 function readFile(path, fileName, defaultText = '') {
     return new Promise((resolve, reject) => {
         if (debug)
@@ -905,11 +933,18 @@ function langs(jsonArr) {
     });
 }
 
-function generateBlock(list) {
+function generateBlocks(list) {
     let jsons = [];
-    for (let item in list) {
+    for (let item in list)
         jsons.push(generate(list[item].name, list[item].options, list[item].drops));
-    }
+
+    return langs(jsons);
+}
+
+function generateItems(list) {
+    let jsons = [];
+    for (let item in list)
+        jsons.push(generateItem(list[item]));
 
     return langs(jsons);
 }
@@ -932,7 +967,7 @@ function etcLangs(list) {
     1       Self
 */
 const blocks = require('./blocks.json');
-
+const items = require('./items.json');
 const groups = require('./groups');
 
 function _() {
@@ -951,18 +986,21 @@ function _() {
         _();
     }
     else {
-        generateBlock(blocks)
+        generateBlocks(blocks)
             .then(() => {
-                etcLangs(groups);
-                addTags(tagValues);
+                generateItems(items)
+                    .then(() => {
+                        etcLangs(groups);
+                        addTags(tagValues);
 
-                const list = require('./recipes.json');
-                for (let i in list)
-                    convert_recipe(list[i]);
+                        const list = require('./recipes.json');
+                        for (let i in list)
+                            convert_recipe(list[i]);
 
-                addRecipes(recipes)
+                        addRecipes(recipes)
+                            .catch(err => console.log(err));
+                    })
                     .catch(err => console.log(err));
-
             })
             .catch(e => console.log(e));
     }
