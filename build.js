@@ -442,6 +442,7 @@ function build_recipe_jsons(r) {
         for (let i in dyes) {
             json = {
                 options: r.options,
+                block: !!r.block,
                 pattern: r.pattern.replace(regex.dye, dyes[i]),
                 result: r.result.replace(regex.dye, dyes[i]),
                 dye: dyes[i]
@@ -458,16 +459,34 @@ function build_recipe_jsons(r) {
             arr.push(json);
         }
     }
+    else {
+        const json = {
+            options: r.options,
+            block: !!r.block,
+            pattern: r.pattern,
+            result: r.result
+        }
+
+        json.blockName = json.pattern.includes('minecraft:')
+            ? json.pattern
+            : `${mod_id}:${json.pattern}`,
+        json.itemName = json.result.includes('minecraft:')
+            ? json.result
+            : `${mod_id}:${json.result}`,
+        json.fileName = json.result.replace(/\w+:/, '');
+
+        arr.push(json);
+    }
     
     return arr;
 }
+
 function convert_recipe(json) {
     let arr = build_recipe_jsons(json);
-    console.log(arr.length);
 
     for (let i in arr) {
         const recipe = arr[i];
-        console.log(recipe.dye);
+        
         const name = recipe.itemName;
         const block = recipe.blockName;
 
