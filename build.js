@@ -854,12 +854,24 @@ function generate(name, options = 1, drops = 'self') {
     return json;
 }
 
+function capitalize(str) {
+    return str[0].toUpperCase() + str.slice(1);
+}
+
+function fixName(str) {
+    let a = str.split(/[\s_]/g);
+    let s = [];
+    for (let i in a)
+        s.push(capitalize(a[i]));
+    return s.join(' ');
+}
+
 function generateItem(name) {
     const json = {};
     if (regex.dye.test(name)) {
         for (let i in dyes) {
-            const _name = name.replace(regex.dye, dyes[i]);
-            const registryName = _name.replace(' ', '_');
+            const _name = fixName(name.replace(regex.dye, dyes[i]));
+            const registryName = _name.replace(/\s/g, '_').toLowerCase();
             create_item_model(registryName, 'item');
             json[`item.${mod_id}.${registryName}`] = `${_name}`;
         }
