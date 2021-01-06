@@ -437,6 +437,8 @@ const regex = {
 function build_recipe_jsons(r) {
     let arr = [];
 
+    let res = r.result.split(';');
+
     if (regex.dye.test(r.pattern) || regex.dye.test(r.result)) {
         let json;
         for (let i in dyes) {
@@ -444,8 +446,20 @@ function build_recipe_jsons(r) {
                 options: r.options,
                 block: !!r.block,
                 pattern: r.pattern.replace(regex.dye, dyes[i]),
-                result: r.result.replace(regex.dye, dyes[i]),
-                dye: dyes[i]
+                result: res[0].replace(regex.dye, dyes[i]),
+                count: res.length == 1 ? null : Number(res[1]),
+                dye: dyes[i],
+                experience: r.options == 2
+                    ? Number(r.experience) || 0.3
+                    : null,
+                cookingtime: r.options == 2
+                    ? Number(r.cookingtime) || 200
+                    : null,
+                complement: !!r.complement,
+                blockName: '',
+                itemName: '',
+                fileName: '',
+                fileName_comp: ''
             }
 
             json.blockName = json.pattern.includes('minecraft:')
@@ -455,6 +469,9 @@ function build_recipe_jsons(r) {
                 ? json.result
                 : `${mod_id}:${json.result}`,
             json.fileName = json.result.replace(/\w+:/, '');
+            
+            if (json.complement)
+                json.fileName_comp = json.pattern.replace(/\w+:/, '');
 
             arr.push(json);
         }
@@ -464,7 +481,20 @@ function build_recipe_jsons(r) {
             options: r.options,
             block: !!r.block,
             pattern: r.pattern,
-            result: r.result
+            result: r.result,
+            count: res.length == 1 ? null : Number(res[1]),
+            dye: null,
+            experience: r.options == 2
+                ? Number(r.experience) || 0.3
+                : null,
+            cookingtime: r.options == 2
+                ? Number(r.cookingtime) || 200
+                : null,
+            complement: !!r.complement,
+            blockName: '',
+            itemName: '',
+            fileName: '',
+            fileName_comp: ''
         }
 
         json.blockName = json.pattern.includes('minecraft:')
@@ -474,6 +504,9 @@ function build_recipe_jsons(r) {
             ? json.result
             : `${mod_id}:${json.result}`,
         json.fileName = json.result.replace(/\w+:/, '');
+
+        if (json.complement)
+            json.fileName_comp = json.pattern.replace(/\w+:/, '');
 
         arr.push(json);
     }
@@ -486,7 +519,7 @@ function convert_recipe(json) {
 
     for (let i in arr) {
         const recipe = arr[i];
-        
+
         const name = recipe.itemName;
         const block = recipe.blockName;
 
@@ -507,7 +540,7 @@ function convert_recipe(json) {
                     },
                     "result": {
                         "item": name,
-                        "count": 1
+                        "count": recipe.count === null ? 1 : recipe.count
                     }
                 });
                 break;
@@ -520,8 +553,8 @@ function convert_recipe(json) {
                     "item": block
                     },
                     "result": name,
-                    "experience": 0.3,
-                    "cookingtime": 200
+                    "experience": recipe.experience,
+                    "cookingtime": recipe.cookingtime
                 });
                 break;
             }
@@ -539,7 +572,7 @@ function convert_recipe(json) {
                     },
                     "result": {
                         "item": name,
-                        "count": 4
+                        "count": recipe.count === null ? 4 : recipe.count
                     }
                 });
                 break;
@@ -562,9 +595,46 @@ function convert_recipe(json) {
                     },
                     "result": {
                         "item": name,
-                        "count": 8
+                        "count": recipe.count === null ? 8 : recipe.count
                     }
                 });
+                break;
+            }
+            case 5: {
+                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                    "type": "minecraft:crafting_shaped",
+                    "pattern": [
+                        "XXX",
+                        "XXX",
+                        "XXX"
+                    ],
+                    "key": {
+                        "X": {
+                            "item": block
+                        }
+                    },
+                    "result": {
+                        "item": name,
+                        "count": recipe.count === null ? 1 : recipe.count
+                    }
+                });
+                if (recipe.complement) {
+                    recipes.set({ path: `crafting/blocks`, name: recipe.fileName_comp }, {
+                        "type": "minecraft:crafting_shapeless",
+                        "pattern": [
+                            "X"
+                        ],
+                        "key": {
+                            "X": {
+                                "item": name
+                            }
+                        },
+                        "result": {
+                            "item": block,
+                            "count": 9
+                        }
+                    });
+                }
                 break;
             }
         }
@@ -766,8 +836,19 @@ function addTags(map) {
 function addRecipes(map) {
     return new Promise((resolve, reject) => {
         let arr = [];
+        let name = '';
+        let count = null;
         map.forEach((v, k, m) => {
-            arr.push(writeToFile(`${dirs.recipes}/${k.path}`, `${k.name}.json`, JSON.stringify(v)));
+            name = k.name;
+            if (fs.existsSync(`${dirs.recipes}/${k.path}/${name}.json`)) {
+                count = 0;
+                name = `${k.name}_${count}`;
+                while (fs.existsSync(`${dirs.recipes}/${k.path}/${name}.json`)) {
+                    count++;
+                    name = `${k.name}_${count}`;
+                }
+            }
+            arr.push(writeToFile(`${dirs.recipes}/${k.path}`, `${name}.json`, JSON.stringify(v)));
         });
 
         Promise.all(arr)
