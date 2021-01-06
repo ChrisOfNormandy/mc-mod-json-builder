@@ -8,6 +8,8 @@ const dyes = main.dyes;
 let tagValues = new Map();
 let recipes = new Map();
 
+const debug = false;
+
 function create_blockstate(name, type) {
     let blockstate;
     let fileName;
@@ -410,90 +412,132 @@ function getCraftingType(type) {
 }
 
 const regex = {
-    dyeItem: /\{dyeItem\}/g,
-    dye: /\{dye\}/g,
-    mod_id: /\{mod_id\}/g
+    dyeItem: /\{dyeItem\}/,
+    dye: /\{dye\}/,
+    mod_id: /\{mod_id\}/
 };
 
 /*
     Options
-    4       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
-    3       Smelted     Use pattern as item, makes smeltable to result (no type needed).
-    2       Mossy       Use pattern as item, adds vine item (no type needed).
-    1       Dyed        Use pattern as item, change {dyeItem}/{dye} to appropriate item/name
+    4       Dyed        Use pattern as item, makes 3;1{item}1;3 recipe (no type needed).
+    3       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
+    2       Smelted     Use pattern as item, makes smeltable to result (no type needed).
+    1       Mossy       Use pattern as item, adds vine item (no type needed).
 */
-function convert_recipe(recipe) {   
-    const name = recipe.result.includes('minecraft:')
-        ? recipe.result
-        : `${mod_id}:${recipe.result}`;
-        
-    const block = recipe.pattern.includes('minecraft:')
-        ? recipe.pattern
-        : `${mod_id}:${recipe.pattern}`;
+function build_recipe_jsons(r) {
+    let arr = [];
 
-    switch (recipe.options) {
-        case 1: {
-            for (let i in dyes) {
-                create_dye_recipe(
-                    recipe.result.replace(regex.dye, dyes[i]),
-                    recipe.pattern,
-                    dyes[i]
-                );
+    if (regex.dye.test(r.pattern) || regex.dye.test(r.result)) {
+        let json;
+        for (let i in dyes) {
+            json = {
+                options: r.options,
+                pattern: r.pattern.replace(regex.dye, dyes[i]),
+                result: r.result.replace(regex.dye, dyes[i]),
+                dye: dyes[i]
             }
-            return;
+
+            json.blockName = json.pattern.includes('minecraft:')
+                ? json.pattern
+                : `${mod_id}:${json.pattern}`,
+            json.itemName = json.result.includes('minecraft:')
+                ? json.result
+                : `${mod_id}:${json.result}`,
+            json.fileName = json.result.replace(/\w+:/, '');
+
+            arr.push(json);
         }
-        case 2: {
-            recipes.set({ path: `crafting/blocks`, name: recipe.result.replace('minecraft:', '') }, {
-                "type": "minecraft:crafting_shapeless",
-                "pattern": [
-                    "Xv"
-                ],
-                "key": {
-                    "X": {
-                        "item": block
+    }
+    
+    return arr;
+}
+function convert_recipe(json) {
+    let arr = build_recipe_jsons(json);
+    console.log(arr.length);
+
+    for (let i in arr) {
+        const recipe = arr[i];
+        console.log(recipe.dye);
+        const name = recipe.itemName;
+        const block = recipe.blockName;
+
+        switch (recipe.options) {
+            case 1: {
+                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                    "type": "minecraft:crafting_shapeless",
+                    "pattern": [
+                        "Xv"
+                    ],
+                    "key": {
+                        "X": {
+                            "item": block
+                        },
+                        "v": {
+                            "item": `minecraft:vine`
+                        }
                     },
-                    "v": {
-                        "item": `minecraft:vine`
+                    "result": {
+                        "item": name,
+                        "count": 1
                     }
-                },
-                "result": {
-                    "item": name,
-                    "count": 1
-                }
-            });
-            return;
-        }
-        case 3: {
-            recipes.set({ path: `smelting/blocks`, name: recipe.result.replace('minecraft:', '') },
-            {
-                "type": "minecraft:smelting",
-                "ingredient": {
-                  "item": block
-                },
-                "result": name,
-                "experience": 0.3,
-                "cookingtime": 200
-            });
-            return;
-        }
-        case 4: {
-            recipes.set({ path: `crafting/blocks`, name: recipe.result.replace('minecraft:', '') }, {
-                "type": "minecraft:crafting_shaped",
-                "pattern": [
-                    "XX",
-                    "XX"
-                ],
-                "key": {
-                    "X": {
-                        "item": block
+                });
+                break;
+            }
+            case 2: {
+                recipes.set({ path: `smelting/${recipe.block == true ? 'blocks' : 'items'}`, name: recipe.fileName },
+                {
+                    "type": "minecraft:smelting",
+                    "ingredient": {
+                    "item": block
+                    },
+                    "result": name,
+                    "experience": 0.3,
+                    "cookingtime": 200
+                });
+                break;
+            }
+            case 3: {
+                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                    "type": "minecraft:crafting_shaped",
+                    "pattern": [
+                        "XX",
+                        "XX"
+                    ],
+                    "key": {
+                        "X": {
+                            "item": block
+                        }
+                    },
+                    "result": {
+                        "item": name,
+                        "count": 4
                     }
-                },
-                "result": {
-                    "item": name,
-                    "count": 4
-                }
-            });
-            return;
+                });
+                break;
+            }
+            case 4: {
+                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                    "type": "minecraft:crafting_shaped",
+                    "pattern": [
+                        "XXX",
+                        "XdX",
+                        "XXX"
+                    ],
+                    "key": {
+                        "X": {
+                            "item": block
+                        },
+                        "d": {
+                            "item": main.getDyeItem(recipe.dye)
+                        }
+                    },
+                    "result": {
+                        "item": name,
+                        "count": 8
+                    }
+                });
+                break;
+            }
         }
     }
 }
@@ -802,7 +846,8 @@ function generate(name, options = 1, drops = 'self') {
 
 function readFile(path, fileName, defaultText = '') {
     return new Promise((resolve, reject) => {
-        console.log('Reading file: ', `${path}/${fileName}`)
+        if (debug)
+            console.log('Reading file: ', `${path}/${fileName}`)
 
         fs.readFile(`${path}/${fileName}`, 'utf8', (err, data) => {
             if (err) {
@@ -822,7 +867,8 @@ function readFile(path, fileName, defaultText = '') {
 
 function writeToFile(path, fileName, str) {
     return new Promise((resolve, reject) => {
-        console.log(`Writing file: `, `${path}/${fileName}`)
+        if (debug)
+            console.log(`Writing file: `, `${path}/${fileName}`)
         fs.writeFile(`${path}/${fileName}`, str, (err, result) => {
             if (err) {
                 if (err.code == 'ENOENT') {
