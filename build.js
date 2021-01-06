@@ -1,16 +1,33 @@
 const fs = require('fs');
-const main = require('./main');
-const path = main.path;
-const mod_id = main.mod_id;
-const dirs = main.dirs;
-const dyes = main.dyes;
+const {
+    path,
+    mod_id,
+    dirs,
+    dyes,
+    regex,
+
+    getCraftingType,
+    getDyedName,
+    getDyeItem,
+
+    getRegistryName,
+    getDisplayName,
+    getShortName
+} = require('./main');
 
 let tagValues = new Map();
 let recipes = new Map();
 
 const debug = false;
 
-function create_blockstate(name, type) {
+/**
+ * 
+ * @param {string} registryName Parent item - do not include "_stairs" or other endings.
+ * @param {string} type 
+ */
+function create_blockstate(registryName, type) {
+    const name = getShortName(registryName);
+
     let blockstate;
     let fileName;
 
@@ -250,8 +267,15 @@ function create_blockstate(name, type) {
         .catch(err => console.log(err));
 }
 
-function create_block_model(name, type) {
-    let models = new Map();
+/**
+ * 
+ * @param {string} registryName Parent item - do not include "_stairs" or other endings.
+ * @param {string} type 
+ */
+function create_block_model(registryName, type) {
+    const models = new Map();
+    const name = getShortName(registryName);
+
     switch (type) {
         case 'wall': {
             models.set(`${name}_wall_inventory`, {
@@ -358,9 +382,16 @@ function create_block_model(name, type) {
     });
 }
 
-function create_item_model(name, type) {
+/**
+ * 
+ * @param {string} registryName Parent item - do not include "_stairs" or other endings.
+ * @param {string} type 
+ */
+function create_item_model(registryName, type) {
     let model;
     let fileName;
+
+    const name = getShortName(registryName);
 
     switch (type) {
         case 'wall': {
@@ -414,20 +445,6 @@ function create_item_model(name, type) {
         .catch(err => console.log(err));
 }
 
-function getCraftingType(type) {
-    switch (type) {
-        case "shaped": return "minecraft:crafting_shaped";
-        case "shapeless": return "minecraft:crafting_shapeless";
-    }
-    return "minecraft:crafting_shaped"
-}
-
-const regex = {
-    dyeItem: /\{dyeItem\}/,
-    dye: /\{dye\}/,
-    mod_id: /\{mod_id\}/
-};
-
 /*
     Options
     5       Compacted   Use pattern as item, makes 3x3 recipe (no type needed).
@@ -443,17 +460,18 @@ function build_recipe_jsons(r) {
 
     let key = {};
     for (let k in r.key) {
-        key[k] = r.key[k].replace(regex.mod_id, mod_id);
+        key[k] = getRegistryName(r.key[k]);
     }
 
     if (regex.dye.test(r.pattern) || regex.dye.test(r.result)) {
         let json;
+
         for (let i in dyes) {
             json = {
                 options: r.options,
                 block: !!r.block,
-                pattern: r.pattern.replace(regex.dye, dyes[i]),
-                result: res[0].replace(regex.dye, dyes[i]),
+                pattern: getDyedName(r.pattern, dyes[i]),
+                result: getDyedName(res[0], dyes[i]),
                 count: res.length == 1 ? null : Number(res[1]),
                 dye: dyes[i],
                 key,
@@ -465,22 +483,18 @@ function build_recipe_jsons(r) {
                     ? Number(r.cookingtime) || 200
                     : null,
                 complement: !!r.complement,
-                blockName: '',
-                itemName: '',
+                ingredientName: '',
+                productName: '',
                 fileName: '',
                 fileName_comp: ''
             }
 
-            json.blockName = json.pattern.includes('minecraft:')
-                ? json.pattern
-                : `${mod_id}:${json.pattern}`,
-                json.itemName = json.result.includes('minecraft:')
-                    ? json.result
-                    : `${mod_id}:${json.result}`,
-                json.fileName = json.result.replace(/\w+:/, '');
+            json.ingredientName = getRegistryName(json.pattern);
+            json.productName = getRegistryName(json.result);
+            json.fileName = getShortName(json.result);
 
             if (json.complement)
-                json.fileName_comp = json.pattern.replace(/\w+:/, '');
+                json.fileName_comp = getShortName(json.pattern);
 
             arr.push(json);
         }
@@ -502,22 +516,18 @@ function build_recipe_jsons(r) {
                 ? Number(r.cookingtime) || 200
                 : null,
             complement: !!r.complement,
-            blockName: '',
-            itemName: '',
+            ingredientName: '',
+            productName: '',
             fileName: '',
             fileName_comp: ''
         }
 
-        json.blockName = json.pattern.includes('minecraft:')
-            ? json.pattern
-            : `${mod_id}:${json.pattern}`,
-            json.itemName = json.result.includes('minecraft:')
-                ? json.result
-                : `${mod_id}:${json.result}`,
-            json.fileName = json.result.replace(/\w+:/, '');
+        json.ingredientName = getRegistryName(json.pattern);
+        json.productName = getRegistryName(json.result);
+        json.fileName = getShortName(json.result);
 
         if (json.complement)
-            json.fileName_comp = json.pattern.replace(/\w+:/, '');
+            json.fileName_comp = getShortName(json.pattern);
 
         arr.push(json);
     }
@@ -531,8 +541,8 @@ function convert_recipe(json) {
     for (let i in arr) {
         const recipe = arr[i];
 
-        const name = recipe.itemName;
-        const block = recipe.blockName;
+        const product = recipe.productName;
+        const ingredient = recipe.ingredientName;
 
         switch (recipe.options) {
             case 1: {
@@ -543,14 +553,14 @@ function convert_recipe(json) {
                     ],
                     "key": {
                         "X": {
-                            "item": block
+                            "item": ingredient
                         },
                         "v": {
                             "item": `minecraft:vine`
                         }
                     },
                     "result": {
-                        "item": name,
+                        "item": product,
                         "count": recipe.count === null ? 1 : recipe.count
                     }
                 });
@@ -561,9 +571,9 @@ function convert_recipe(json) {
                     {
                         "type": "minecraft:smelting",
                         "ingredient": {
-                            "item": block
+                            "item": ingredient
                         },
-                        "result": name,
+                        "result": product,
                         "experience": recipe.experience,
                         "cookingtime": recipe.cookingtime
                     });
@@ -578,11 +588,11 @@ function convert_recipe(json) {
                     ],
                     "key": {
                         "X": {
-                            "item": block
+                            "item": ingredient
                         }
                     },
                     "result": {
-                        "item": name,
+                        "item": product,
                         "count": recipe.count === null ? 4 : recipe.count
                     }
                 });
@@ -598,14 +608,14 @@ function convert_recipe(json) {
                     ],
                     "key": {
                         "X": {
-                            "item": block
+                            "item": ingredient
                         },
                         "d": {
-                            "item": main.getDyeItem(recipe.dye)
+                            "item": getDyeItem(recipe.dye)
                         }
                     },
                     "result": {
-                        "item": name,
+                        "item": product,
                         "count": recipe.count === null ? 8 : recipe.count
                     }
                 });
@@ -621,11 +631,11 @@ function convert_recipe(json) {
                     ],
                     "key": {
                         "X": {
-                            "item": block
+                            "item": ingredient
                         }
                     },
                     "result": {
-                        "item": name,
+                        "item": product,
                         "count": recipe.count === null ? 1 : recipe.count
                     }
                 });
@@ -638,11 +648,11 @@ function convert_recipe(json) {
                         ],
                         "key": {
                             "X": {
-                                "item": name
+                                "item": product
                             }
                         },
                         "result": {
-                            "item": block,
+                            "item": ingredient,
                             "count": 9
                         }
                     });
@@ -653,9 +663,9 @@ function convert_recipe(json) {
                 recipes.set({ path: `stonecutting/${recipe.type}`, name: recipe.fileName }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
-                        "item": block
+                        "item": ingredient
                     },
-                    "result": name,
+                    "result": product,
                     "count": 1
                 });
                 break;
@@ -666,7 +676,7 @@ function convert_recipe(json) {
                     "pattern": recipe.pattern.split(';'),
                     "key": recipe.key,
                     "result": {
-                        "item": name,
+                        "item": product,
                         "count": recipe.count === null ? 1 : recipe.count
                     }
                 });
@@ -676,7 +686,17 @@ function convert_recipe(json) {
     }
 }
 
-function create_recipe(name, type, material) {
+/**
+ * The item provided with the registryName will be used as the item for crafting.
+ * 
+ * This should be rewritten to adapt to convert_recipe.
+ * @param {string} registryName Parent item - do not include "_stairs" or other endings.
+ * @param {string} type 
+ * @param {string} material 
+ */
+function create_recipe(registryName, type, material) {
+    const name = getShortName(registryName);
+
     switch (type) {
         case 'wall': {
             recipes.set({ path: `crafting/walls`, name: `${name}_wall` }, {
@@ -687,7 +707,7 @@ function create_recipe(name, type, material) {
                 ],
                 "key": {
                     "b": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     }
                 },
                 "result": {
@@ -698,7 +718,7 @@ function create_recipe(name, type, material) {
             recipes.set({ path: `stonecutting/walls`, name: `${name}_wall` }, {
                 "type": "minecraft:stonecutting",
                 "ingredient": {
-                    "item": `${mod_id}:${name}`
+                    "item": registryName
                 },
                 "result": `${mod_id}:${name}_wall`,
                 "count": 1
@@ -713,7 +733,7 @@ function create_recipe(name, type, material) {
                 ],
                 "key": {
                     "b": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     }
                 },
                 "result": {
@@ -725,7 +745,7 @@ function create_recipe(name, type, material) {
                 recipes.set({ path: `stonecutting/slabs`, name: `${name}_slab` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     },
                     "result": `${mod_id}:${name}_slab`,
                     "count": 2
@@ -742,7 +762,7 @@ function create_recipe(name, type, material) {
                 ],
                 "key": {
                     "b": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     }
                 },
                 "result": {
@@ -754,7 +774,7 @@ function create_recipe(name, type, material) {
                 recipes.set({ path: `stonecutting/stairs`, name: `${name}_stairs` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     },
                     "result": `${mod_id}:${name}_stairs`,
                     "count": 1
@@ -770,7 +790,7 @@ function create_recipe(name, type, material) {
                 ],
                 "key": {
                     "b": {
-                        "item": `${mod_id}:${name}`
+                        "item": registryName
                     },
                     "s": {
                         "item": `minecraft:stick`
@@ -786,53 +806,85 @@ function create_recipe(name, type, material) {
     }
 }
 
-function create_dye_recipe(name, block, dye) {
-    recipes.set({ path: `crafting/blocks`, name }, {
-        "type": "minecraft:crafting_shaped",
-        "pattern": [
-            "bbb",
-            "bXb",
-            "bbb"
-        ],
-        "key": {
-            "b": {
-                "item": block.includes('minecraft:')
-                    ? block
-                    : `${mod_id}:${block}`
-            },
-            "X": {
-                "item": `minecraft:${dye}_dye`
-            }
-        },
-        "result": {
-            "item": name.includes('minecraft:')
-                ? name
-                : `${mod_id}:${name}`,
-            "count": 8
-        }
-    });
-}
+/**
+ * 
+ * @param {string} registryName
+ * @param {{name: string, count: number}} drops 
+ */
+function create_loot_table(registryName, drops = { name: 'self', count: 1 }) {
+    const name = getShortName(registryName);
+    let table = {};
 
-function create_loot_table(name, drops = 'self') {
-    let table = {
-        "type": "minecraft:block",
-        "pools": [
-            {
-                "rolls": 1,
-                "entries": [
-                    {
-                        "type": "minecraft:item",
-                        "name": (drops == 'self') ? `${mod_id}:${name}` : drops
-                    }
-                ],
-                "conditions": [
-                    {
-                        "condition": "minecraft:survives_explosion"
-                    }
-                ]
-            }
-        ]
-    };
+    if (drops.name === 'self') {
+        table = {
+            "type": "minecraft:block",
+            "pools": [
+                {
+                    "rolls": drops.count,
+                    "entries": [
+                        {
+                            "type": "minecraft:item",
+                            "name": registryName
+                        }
+                    ],
+                    "conditions": [
+                        {
+                            "condition": "minecraft:survives_explosion"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    else {
+        table = {
+            "type": "minecraft:block",
+            "pools": [
+                {
+                    "rolls": 1,
+                    "entries": [
+                        {
+                            "type": "minecraft:alternatives",
+                            "children": [
+                                {
+                                    "type": "minecraft:item",
+                                    "conditions": [
+                                        {
+                                            "condition": "minecraft:match_tool",
+                                            "predicate": {
+                                                "enchantments": [
+                                                    {
+                                                        "enchantment": "minecraft:silk_touch",
+                                                        "levels": {
+                                                            "min": 1
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "name": registryName
+                                },
+                                {
+                                    "type": "minecraft:item",
+                                    "functions": [
+                                        {
+                                            "function": "minecraft:set_count",
+                                            "count": drops.count
+                                        },
+                                        {
+                                            "function": "minecraft:explosion_decay"
+                                        }
+                                    ],
+                                    "name": drops.name
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 
     writeToFile(dirs.loot_tables, `${name}.json`, JSON.stringify(table))
         .catch(err => console.log(err));
@@ -893,7 +945,6 @@ function addRecipes(map) {
 }
 
 /*
-    32      Dyed
     16      Fence
     8       Wall
     4       Stairs
@@ -903,25 +954,29 @@ function addRecipes(map) {
 
 /**
  * 
- * @param {string} name 
+ * @param {string} name Display name, not registry name.
  * @param {number} options 
- * @param {string} drops 
+ * @param {{name: string, count: number}} drops Name should be a registry name - "mod_id:registryName." Will use config mod_id if not provided.
  */
-function generate(name, options = 1, drops = 'self') {
-    const registryName = name.replace(/\s/g, '_').toLowerCase();
+function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
+    const displayName = getDisplayName(name);
+    const registryName = getRegistryName(name);
+
     let json = {};
 
-    if (options >= 32) {
+    if (regex.dye.test(registryName)) {
         let arr = [];
-        for (let i in dyes) {
-            let a = dyes[i].split('_');
+        let dye;
+        for (let i in dyes) {            
+            dye = dyes[i];
 
-            for (let b in a) {
-                a[b] = `${a[b][0].toUpperCase()}${a[b].slice(1)}`;
-            }
+            const _displayName = getDisplayName(getDyedName(name, dye));
+            const _drops = {
+                name: getRegistryName(getDyedName(drops.name, dye)),
+                count: drops.count
+            };
 
-            arr.push(generate(`${a.join(' ')} Stained ${name}`, options, drops));
-            create_dye_recipe(`${dyes[i]}stained${registryName}`, registryName, dyes[i]);
+            arr.push(generateBlock(_displayName, options, _drops));
         }
 
         for (let i in arr) {
@@ -930,90 +985,85 @@ function generate(name, options = 1, drops = 'self') {
             }
         }
     }
-    if (options >= 16) {
-        create_blockstate(registryName, 'fence');
-        create_block_model(registryName, 'fence');
-        create_item_model(registryName, 'fence');
-        if (options % 2 == 1) {
-            create_recipe(registryName, 'fence', 'wood');
-            create_loot_table(`${registryName}_fence`);
+    else {
+        if (options >= 16) {
+            create_blockstate(registryName, 'fence');
+            create_block_model(registryName, 'fence');
+            create_item_model(registryName, 'fence');
+            if (options % 2 == 1) {
+                create_recipe(registryName, 'fence', 'wood');
+                create_loot_table(`${registryName}_fence`);
+            }
+            json[`block.${mod_id}.${registryName}_fence`] = `${displayName} Fence`;
+
+            options -= 16;
         }
-        json[`block.${mod_id}.${registryName}_fence`] = `${name} Fence`;
+        if (options >= 8) {
+            create_blockstate(registryName, 'wall');
+            create_block_model(registryName, 'wall');
+            create_item_model(registryName, 'wall');
+            if (options % 2 == 1) {
+                create_recipe(registryName, 'wall', 'rock');
+                create_loot_table(`${registryName}_wall`);
+            }
+            json[`block.${mod_id}.${registryName}_wall`] = `${displayName} Wall`;
 
-        options -= 16;
-    }
-    if (options >= 8) {
-        create_blockstate(registryName, 'wall');
-        create_block_model(registryName, 'wall');
-        create_item_model(registryName, 'wall');
-        if (options % 2 == 1) {
-            create_recipe(registryName, 'wall', 'rock');
-            create_loot_table(`${registryName}_wall`);
+            options -= 8;
         }
-        json[`block.${mod_id}.${registryName}_wall`] = `${name} Wall`;
+        if (options >= 4) {
+            create_blockstate(registryName, 'stairs');
+            create_block_model(registryName, 'stairs');
+            create_item_model(registryName, 'stairs');
+            if (options % 2 == 1) {
+                create_recipe(registryName, 'stairs', 'rock');
+                create_loot_table(`${registryName}_stairs`);
+            }
+            json[`block.${mod_id}.${registryName}_stairs`] = `${displayName} Stairs`;
 
-        options -= 8;
-    }
-    if (options >= 4) {
-        create_blockstate(registryName, 'stairs');
-        create_block_model(registryName, 'stairs');
-        create_item_model(registryName, 'stairs');
-        if (options % 2 == 1) {
-            create_recipe(registryName, 'stairs', 'rock');
-            create_loot_table(`${registryName}_stairs`);
+            options -= 4;
         }
-        json[`block.${mod_id}.${registryName}_stairs`] = `${name} Stairs`;
+        if (options >= 2) {
+            create_blockstate(registryName, 'slab');
+            create_block_model(registryName, 'slab');
+            create_item_model(registryName, 'slab');
+            if (options % 2 == 1) {
+                create_recipe(registryName, 'slab', 'rock');
+                create_loot_table(`${registryName}_slab`);
+            }
+            json[`block.${mod_id}.${registryName}_slab`] = `${displayName} Slab`;
 
-        options -= 4;
-    }
-    if (options >= 2) {
-        create_blockstate(registryName, 'slab');
-        create_block_model(registryName, 'slab');
-        create_item_model(registryName, 'slab');
-        if (options % 2 == 1) {
-            create_recipe(registryName, 'slab', 'rock');
-            create_loot_table(`${registryName}_slab`);
+            options -= 2;
         }
-        json[`block.${mod_id}.${registryName}_slab`] = `${name} Slab`;
-
-        options -= 2;
+        if (options === 1) {
+            create_blockstate(registryName, 'block');
+            create_block_model(registryName, null);
+            create_item_model(registryName, null);
+            create_loot_table(registryName, drops);
+            json[`block.${mod_id}.${getShortName(registryName)}`] = displayName;
+        }
     }
-    if (options === 1) {
-        create_blockstate(registryName, 'block');
-        create_block_model(registryName, null);
-        create_item_model(registryName, null);
-        create_loot_table(registryName, drops);
-        json[`block.${mod_id}.${registryName}`] = name;
-    }
-
     return json;
-}
-
-function capitalize(str) {
-    return str[0].toUpperCase() + str.slice(1);
-}
-
-function fixName(str) {
-    let a = str.split(/[\s_]/g);
-    let s = [];
-    for (let i in a)
-        s.push(capitalize(a[i]));
-    return s.join(' ');
 }
 
 function generateItem(name) {
     const json = {};
+
     if (regex.dye.test(name)) {
         for (let i in dyes) {
-            const _name = fixName(name.replace(regex.dye, dyes[i]));
-            const registryName = _name.replace(/\s/g, '_').toLowerCase();
+            const displayName = getDisplayName(name.replace(regex.dye, dyes[i]));
+            const registryName = getRegistryName(displayName);
+
             create_item_model(registryName, 'item');
-            json[`item.${mod_id}.${registryName}`] = `${_name}`;
+
+            json[`item.${mod_id}.${getShortName(displayName)}`] = displayName;
         }
     }
     else {
-        create_item_model(name, 'item');
-        json[`item.${mod_id}.${registryName}`] = name;
+        const registryName = getRegistryName(name);
+
+        create_item_model(registryName, 'item');
+
+        json[`item.${mod_id}.${getShortName(displayName)}`] = getDisplayName(name);
     }
 
     return json;
@@ -1083,7 +1133,7 @@ function langs(jsonArr) {
 function generateBlocks(list) {
     let jsons = [];
     for (let item in list)
-        jsons.push(generate(list[item].name, list[item].options, list[item].drops));
+        jsons.push(generateBlock(list[item].name, list[item].options, list[item].drops));
 
     return langs(jsons);
 }
