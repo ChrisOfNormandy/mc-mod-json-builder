@@ -395,7 +395,7 @@ function create_item_model(name, type) {
             model = {
                 "parent": "minecraft:item/generated",
                 "textures": {
-                    "layer0": `minecraft:item/${name}`
+                    "layer0": `${mod_id}:item/${name}`
                 }
             };
             fileName = name;
