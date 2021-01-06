@@ -416,7 +416,8 @@ function create_item_model(name, type) {
 
 function getCraftingType(type) {
     switch (type) {
-        case "shaped": return "minecraft:crafting_shaped"
+        case "shaped": return "minecraft:crafting_shaped";
+        case "shapeless": return "minecraft:crafting_shapeless";
     }
     return "minecraft:crafting_shaped"
 }
@@ -440,6 +441,11 @@ function build_recipe_jsons(r) {
 
     let res = r.result.split(';');
 
+    let key = {};
+    for (let k in r.key) {
+        key[k] = r.key[k].replace(regex.mod_id, mod_id);
+    }
+
     if (regex.dye.test(r.pattern) || regex.dye.test(r.result)) {
         let json;
         for (let i in dyes) {
@@ -450,6 +456,8 @@ function build_recipe_jsons(r) {
                 result: res[0].replace(regex.dye, dyes[i]),
                 count: res.length == 1 ? null : Number(res[1]),
                 dye: dyes[i],
+                key,
+                type: r.type,
                 experience: r.options == 2
                     ? Number(r.experience) || 0.3
                     : null,
@@ -466,11 +474,11 @@ function build_recipe_jsons(r) {
             json.blockName = json.pattern.includes('minecraft:')
                 ? json.pattern
                 : `${mod_id}:${json.pattern}`,
-            json.itemName = json.result.includes('minecraft:')
-                ? json.result
-                : `${mod_id}:${json.result}`,
-            json.fileName = json.result.replace(/\w+:/, '');
-            
+                json.itemName = json.result.includes('minecraft:')
+                    ? json.result
+                    : `${mod_id}:${json.result}`,
+                json.fileName = json.result.replace(/\w+:/, '');
+
             if (json.complement)
                 json.fileName_comp = json.pattern.replace(/\w+:/, '');
 
@@ -482,9 +490,11 @@ function build_recipe_jsons(r) {
             options: r.options,
             block: !!r.block,
             pattern: r.pattern,
-            result: r.result,
+            result: res[0],
             count: res.length == 1 ? null : Number(res[1]),
             dye: null,
+            key,
+            type: r.type,
             experience: r.options == 2
                 ? Number(r.experience) || 0.3
                 : null,
@@ -501,17 +511,17 @@ function build_recipe_jsons(r) {
         json.blockName = json.pattern.includes('minecraft:')
             ? json.pattern
             : `${mod_id}:${json.pattern}`,
-        json.itemName = json.result.includes('minecraft:')
-            ? json.result
-            : `${mod_id}:${json.result}`,
-        json.fileName = json.result.replace(/\w+:/, '');
+            json.itemName = json.result.includes('minecraft:')
+                ? json.result
+                : `${mod_id}:${json.result}`,
+            json.fileName = json.result.replace(/\w+:/, '');
 
         if (json.complement)
             json.fileName_comp = json.pattern.replace(/\w+:/, '');
 
         arr.push(json);
     }
-    
+
     return arr;
 }
 
@@ -548,15 +558,15 @@ function convert_recipe(json) {
             }
             case 2: {
                 recipes.set({ path: `smelting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName },
-                {
-                    "type": "minecraft:smelting",
-                    "ingredient": {
-                    "item": block
-                    },
-                    "result": name,
-                    "experience": recipe.experience,
-                    "cookingtime": recipe.cookingtime
-                });
+                    {
+                        "type": "minecraft:smelting",
+                        "ingredient": {
+                            "item": block
+                        },
+                        "result": name,
+                        "experience": recipe.experience,
+                        "cookingtime": recipe.cookingtime
+                    });
                 break;
             }
             case 3: {
@@ -619,6 +629,7 @@ function convert_recipe(json) {
                         "count": recipe.count === null ? 1 : recipe.count
                     }
                 });
+
                 if (recipe.complement) {
                     recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName_comp }, {
                         "type": "minecraft:crafting_shapeless",
@@ -636,6 +647,29 @@ function convert_recipe(json) {
                         }
                     });
                 }
+                break;
+            }
+            case 6: {
+                recipes.set({ path: `stonecutting/${recipe.type}`, name: recipe.fileName }, {
+                    "type": "minecraft:stonecutting",
+                    "ingredient": {
+                        "item": block
+                    },
+                    "result": name,
+                    "count": 1
+                });
+                break;
+            }
+            default: {
+                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
+                    "type": getCraftingType(recipe.type),
+                    "pattern": recipe.pattern.split(';'),
+                    "key": recipe.key,
+                    "result": {
+                        "item": name,
+                        "count": recipe.count === null ? 1 : recipe.count
+                    }
+                });
                 break;
             }
         }
