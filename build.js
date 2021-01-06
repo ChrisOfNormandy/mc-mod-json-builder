@@ -418,7 +418,7 @@ const regex = {
 /*
     Options
     4       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
-    3       Cracked     Use pattern as item, makes smeltable (no type needed).
+    3       Smelted     Use pattern as item, makes smeltable to result (no type needed).
     2       Mossy       Use pattern as item, adds vine item (no type needed).
     1       Dyed        Use pattern as item, change {dyeItem}/{dye} to appropriate item/name
 */
@@ -464,6 +464,16 @@ function convert_recipe(recipe) {
             return;
         }
         case 3: {
+            recipes.set({ path: `smelting/blocks`, name: recipe.result.replace('minecraft:', '') },
+            {
+                "type": "minecraft:smelting",
+                "ingredient": {
+                  "item": block
+                },
+                "result": name,
+                "experience": 0.3,
+                "cookingtime": 200
+            });
             return;
         }
         case 4: {
