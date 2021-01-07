@@ -997,7 +997,7 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
                 create_recipe(registryName, 'fence', 'wood');
                 create_loot_table(`${registryName}_fence`);
             }
-            json[`block.${mod_id}.${registryName}_fence`] = `${displayName} Fence`;
+            json[`block.${mod_id}.${getShortName(registryName)}_fence`] = `${displayName} Fence`;
 
             options -= 16;
         }
@@ -1009,7 +1009,7 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
                 create_recipe(registryName, 'wall', 'rock');
                 create_loot_table(`${registryName}_wall`);
             }
-            json[`block.${mod_id}.${registryName}_wall`] = `${displayName} Wall`;
+            json[`block.${mod_id}.${getShortName(registryName)}_wall`] = `${displayName} Wall`;
 
             options -= 8;
         }
@@ -1021,7 +1021,7 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
                 create_recipe(registryName, 'stairs', 'rock');
                 create_loot_table(`${registryName}_stairs`);
             }
-            json[`block.${mod_id}.${registryName}_stairs`] = `${displayName} Stairs`;
+            json[`block.${mod_id}.${getShortName(registryName)}_stairs`] = `${displayName} Stairs`;
 
             options -= 4;
         }
@@ -1033,7 +1033,7 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
                 create_recipe(registryName, 'slab', 'rock');
                 create_loot_table(`${registryName}_slab`);
             }
-            json[`block.${mod_id}.${registryName}_slab`] = `${displayName} Slab`;
+            json[`block.${mod_id}.${getShortName(registryName)}_slab`] = `${displayName} Slab`;
 
             options -= 2;
         }
