@@ -1097,13 +1097,19 @@ function queueFile(path, fileName, str) {
         path, fileName, str
     };
     let fullPath = `${path}/${fileName}`;
-    writeQueue.set(fullPath, data);
+    if (writeQueue.has(fullPath))
+        writeQueue.get(fullPath).push(data);
+    else
+        writeQueue.set(fullPath, [data]);
 }
 
 function runWriteQueue() {
     let arr = [];
-    writeQueue.forEach((data, path, m) => {
-        arr.push(writeToFile(data.path, data.fileName, data.str));
+    writeQueue.forEach((dataArr, path, m) => {
+        for (let i in dataArr) {
+            const data = dataArr[i];
+            arr.push(writeToFile(data.path, data.fileName, data.str));
+        }
     });
 
     return new Promise((resolve, reject) => {
