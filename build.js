@@ -932,7 +932,7 @@ function addrecipeMap(map) {
                     name = `${k.name}_${count}`;
                 }
             }
-            queueFile(`${dirs.recipeMap}/${k.path}`, `${name}.json`, JSON.stringify(v));
+            queueFile(`${dirs.recipes}/${k.path}`, `${name}.json`, JSON.stringify(v));
         });
         resolve(map);
     });
@@ -1092,6 +1092,7 @@ function readFile(path, fileName, defaultText = '') {
 }
 
 function queueFile(path, fileName, str) {
+    console.log(path, fileName);
     const data = {
         path, fileName, str
     };
