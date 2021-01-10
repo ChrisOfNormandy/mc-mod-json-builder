@@ -16,7 +16,9 @@ const {
 } = require('./main');
 
 let tagValues = new Map();
-let recipes = new Map();
+let recipeMap = new Map();
+
+let writeQueue = new Map();
 
 const debug = false;
 
@@ -263,8 +265,7 @@ function create_blockstate(registryName, type) {
         }
     }
 
-    writeToFile(dirs.blockstates, `${fileName}.json`, JSON.stringify(blockstate))
-        .catch(err => console.log(err));
+    queueFile(dirs.blockstates, `${fileName}.json`, JSON.stringify(blockstate));
 }
 
 /**
@@ -377,8 +378,7 @@ function create_block_model(registryName, type) {
     }
 
     models.forEach((v, k, m) => {
-        writeToFile(dirs.block_models, `${k}.json`, JSON.stringify(v))
-            .catch(err => console.log(err));
+        queueFile(dirs.block_models, `${k}.json`, JSON.stringify(v));
     });
 }
 
@@ -441,17 +441,17 @@ function create_item_model(registryName, type) {
         }
     }
 
-    writeToFile(dirs.item_models, `${fileName}.json`, JSON.stringify(model))
-        .catch(err => console.log(err));
+    queueFile(dirs.item_models, `${fileName}.json`, JSON.stringify(model));
 }
 
 /*
     Options
-    5       Compacted   Use pattern as item, makes 3x3 recipe (no type needed).
-    4       Dyed        Use pattern as item, makes 3;1{item}1;3 recipe (no type needed).
-    3       2 x 2       Use pattern as item, makes 2 x 2 recipe (no type needed).
-    2       Smelted     Use pattern as item, makes smeltable to result (no type needed).
-    1       Mossy       Use pattern as item, adds vine item (no type needed).
+    6       Stonecutting    Use pattern as item (no type needed).
+    5       Compacted       Use pattern as item, makes 3x3 recipe (no type needed).
+    4       Dyed            Use pattern as item, makes 3;1{item}1;3 recipe (no type needed).
+    3       2 x 2           Use pattern as item, makes 2 x 2 recipe (no type needed).
+    2       Smelted         Use pattern as item, makes smeltable to result (no type needed).
+    1       Mossy           Use pattern as item, adds vine item (no type needed).
 */
 function build_recipe_jsons(r) {
     let arr = [];
@@ -546,7 +546,7 @@ function convert_recipe(json) {
 
         switch (recipe.options) {
             case 1: {
-                recipes.set({ path: `crafting/blocks`, name: recipe.fileName }, {
+                recipeMap.set({ path: `crafting/blocks`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shapeless",
                     "pattern": [
                         "Xv"
@@ -567,7 +567,7 @@ function convert_recipe(json) {
                 break;
             }
             case 2: {
-                recipes.set({ path: `smelting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName },
+                recipeMap.set({ path: `smelting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName },
                     {
                         "type": "minecraft:smelting",
                         "ingredient": {
@@ -580,7 +580,7 @@ function convert_recipe(json) {
                 break;
             }
             case 3: {
-                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
+                recipeMap.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XX",
@@ -599,7 +599,7 @@ function convert_recipe(json) {
                 break;
             }
             case 4: {
-                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
+                recipeMap.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XXX",
@@ -622,7 +622,7 @@ function convert_recipe(json) {
                 break;
             }
             case 5: {
-                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
+                recipeMap.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": "minecraft:crafting_shaped",
                     "pattern": [
                         "XXX",
@@ -641,7 +641,7 @@ function convert_recipe(json) {
                 });
 
                 if (recipe.complement) {
-                    recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName_comp }, {
+                    recipeMap.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName_comp }, {
                         "type": "minecraft:crafting_shapeless",
                         "pattern": [
                             "X"
@@ -660,7 +660,7 @@ function convert_recipe(json) {
                 break;
             }
             case 6: {
-                recipes.set({ path: `stonecutting/${recipe.type}`, name: recipe.fileName }, {
+                recipeMap.set({ path: `stonecutting/${recipe.type}`, name: recipe.fileName }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": ingredient
@@ -671,7 +671,7 @@ function convert_recipe(json) {
                 break;
             }
             default: {
-                recipes.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
+                recipeMap.set({ path: `crafting/${recipe.block ? 'blocks' : 'items'}`, name: recipe.fileName }, {
                     "type": getCraftingType(recipe.type),
                     "pattern": recipe.pattern.split(';'),
                     "key": recipe.key,
@@ -699,7 +699,7 @@ function create_recipe(registryName, type, material) {
 
     switch (type) {
         case 'wall': {
-            recipes.set({ path: `crafting/walls`, name: `${name}_wall` }, {
+            recipeMap.set({ path: `crafting/walls`, name: `${name}_wall` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb",
@@ -715,7 +715,7 @@ function create_recipe(registryName, type, material) {
                     "count": 6
                 }
             });
-            recipes.set({ path: `stonecutting/walls`, name: `${name}_wall` }, {
+            recipeMap.set({ path: `stonecutting/walls`, name: `${name}_wall` }, {
                 "type": "minecraft:stonecutting",
                 "ingredient": {
                     "item": registryName
@@ -726,7 +726,7 @@ function create_recipe(registryName, type, material) {
             break;
         }
         case 'slab': {
-            recipes.set({ path: `crafting/slabs`, name: `${name}_slab` }, {
+            recipeMap.set({ path: `crafting/slabs`, name: `${name}_slab` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bbb"
@@ -742,7 +742,7 @@ function create_recipe(registryName, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set({ path: `stonecutting/slabs`, name: `${name}_slab` }, {
+                recipeMap.set({ path: `stonecutting/slabs`, name: `${name}_slab` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": registryName
@@ -753,7 +753,7 @@ function create_recipe(registryName, type, material) {
             break;
         }
         case 'stairs': {
-            recipes.set({ path: `crafting/stairs`, name: `${name}_stairs` }, {
+            recipeMap.set({ path: `crafting/stairs`, name: `${name}_stairs` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "b  ",
@@ -771,7 +771,7 @@ function create_recipe(registryName, type, material) {
                 }
             });
             if (material == 'rock')
-                recipes.set({ path: `stonecutting/stairs`, name: `${name}_stairs` }, {
+                recipeMap.set({ path: `stonecutting/stairs`, name: `${name}_stairs` }, {
                     "type": "minecraft:stonecutting",
                     "ingredient": {
                         "item": registryName
@@ -782,7 +782,7 @@ function create_recipe(registryName, type, material) {
             break;
         }
         case 'fence': {
-            recipes.set({ path: `crafting/fences`, name: `${name}_fence` }, {
+            recipeMap.set({ path: `crafting/fences`, name: `${name}_fence` }, {
                 "type": "minecraft:crafting_shaped",
                 "pattern": [
                     "bsb",
@@ -815,7 +815,7 @@ function create_loot_table(registryName, drops = { name: 'self', count: 1 }) {
     const name = getShortName(registryName);
     let table = {};
 
-    if (drops.name === 'self') {
+    if (drops.name === registryName) {
         table = {
             "type": "minecraft:block",
             "pools": [
@@ -886,8 +886,7 @@ function create_loot_table(registryName, drops = { name: 'self', count: 1 }) {
         }
     }
 
-    writeToFile(dirs.loot_tables, `${name}.json`, JSON.stringify(table))
-        .catch(err => console.log(err));
+    queueFile(dirs.loot_tables, `${name}.json`, JSON.stringify(table));
 }
 
 function addTags(map) {
@@ -900,8 +899,7 @@ function addTags(map) {
                     if (!json.values.includes(`${mod_id}:${v[i]}`))
                         json.values.push(`${mod_id}:${v[i]}`);
 
-                writeToFile(`${dirs.tags}/blocks`, `${k}.json`, JSON.stringify(json))
-                    .catch(err => console.log(err));
+                queueFile(`${dirs.tags}/blocks`, `${k}.json`, JSON.stringify(json));
             })
             .catch(err => console.log(err));
 
@@ -913,34 +911,30 @@ function addTags(map) {
                     if (!json.values.includes(`${mod_id}:${v[i]}`))
                         json.values.push(`${mod_id}:${v[i]}`);
 
-                writeToFile(`${dirs.tags}/items`, `${k}.json`, JSON.stringify(json))
-                    .catch(err => console.log(err));
+                queueFile(`${dirs.tags}/items`, `${k}.json`, JSON.stringify(json));
             })
             .catch(err => console.log(err));
     });
 }
 
-function addRecipes(map) {
+function addrecipeMap(map) {
     return new Promise((resolve, reject) => {
         let arr = [];
         let name = '';
         let count = null;
         map.forEach((v, k, m) => {
             name = k.name;
-            if (fs.existsSync(`${dirs.recipes}/${k.path}/${name}.json`)) {
+            if (fs.existsSync(`${dirs.recipeMap}/${k.path}/${name}.json`)) {
                 count = 0;
                 name = `${k.name}_${count}`;
-                while (fs.existsSync(`${dirs.recipes}/${k.path}/${name}.json`)) {
+                while (fs.existsSync(`${dirs.recipeMap}/${k.path}/${name}.json`)) {
                     count++;
                     name = `${k.name}_${count}`;
                 }
             }
-            arr.push(writeToFile(`${dirs.recipes}/${k.path}`, `${name}.json`, JSON.stringify(v)));
+            queueFile(`${dirs.recipeMap}/${k.path}`, `${name}.json`, JSON.stringify(v));
         });
-
-        Promise.all(arr)
-            .then(r => resolve(r))
-            .catch(err => reject(err));
+        resolve(map);
     });
 }
 
@@ -994,8 +988,9 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
             create_block_model(registryName, 'fence');
             create_item_model(registryName, 'fence');
             if (options % 2 == 1) {
+                drops.name += '_fence';
                 create_recipe(registryName, 'fence', 'wood');
-                create_loot_table(`${registryName}_fence`);
+                create_loot_table(`${registryName}_fence`, drops);
             }
             json[`block.${mod_id}.${getShortName(registryName)}_fence`] = `${displayName} Fence`;
 
@@ -1006,8 +1001,9 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
             create_block_model(registryName, 'wall');
             create_item_model(registryName, 'wall');
             if (options % 2 == 1) {
+                drops.name += '_wall';
                 create_recipe(registryName, 'wall', 'rock');
-                create_loot_table(`${registryName}_wall`);
+                create_loot_table(`${registryName}_wall`, drops);
             }
             json[`block.${mod_id}.${getShortName(registryName)}_wall`] = `${displayName} Wall`;
 
@@ -1018,8 +1014,9 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
             create_block_model(registryName, 'stairs');
             create_item_model(registryName, 'stairs');
             if (options % 2 == 1) {
+                drops.name += '_stairs';
                 create_recipe(registryName, 'stairs', 'rock');
-                create_loot_table(`${registryName}_stairs`);
+                create_loot_table(`${registryName}_stairs`, drops);
             }
             json[`block.${mod_id}.${getShortName(registryName)}_stairs`] = `${displayName} Stairs`;
 
@@ -1030,8 +1027,9 @@ function generateBlock(name, options = 1, drops = {name: 'self', count: 1}) {
             create_block_model(registryName, 'slab');
             create_item_model(registryName, 'slab');
             if (options % 2 == 1) {
+                drops.name += '_slab';
                 create_recipe(registryName, 'slab', 'rock');
-                create_loot_table(`${registryName}_slab`);
+                create_loot_table(`${registryName}_slab`, drops);
             }
             json[`block.${mod_id}.${getShortName(registryName)}_slab`] = `${displayName} Slab`;
 
@@ -1066,7 +1064,7 @@ function generateItem(name) {
 
         create_item_model(registryName, 'item');
 
-        json[`item.${mod_id}.${getShortName(displayName)}`] = getDisplayName(name);
+        json[`item.${mod_id}.${getShortName(registryName)}`] = getDisplayName(name);
     }
 
     return json;
@@ -1093,6 +1091,35 @@ function readFile(path, fileName, defaultText = '') {
     })
 }
 
+function queueFile(path, fileName, str) {
+    const data = {
+        path, fileName, str
+    };
+    let fullPath = `${path}/${fileName}`;
+    writeQueue.set(fullPath, data);
+}
+
+function runWriteQueue() {
+    let arr = [];
+    writeQueue.forEach((data, path, m) => {
+        arr.push(writeToFile(data.path, data.fileName, data.str));
+    });
+
+    return new Promise((resolve, reject) => {
+    Promise.all(arr)
+        .then(results => {
+            const passed = results.filter(m => m === null).length;
+            const failed = results.length - passed;
+
+            resolve({
+                passed,
+                failed
+            });
+        })
+        .catch(err => reject(err));
+    });
+}
+
 function writeToFile(path, fileName, str) {
     return new Promise((resolve, reject) => {
         if (debug)
@@ -1104,14 +1131,19 @@ function writeToFile(path, fileName, str) {
                         fs.mkdirSync(path, { recursive: true });
 
                     writeToFile(path, fileName, str)
-                        .then(result => resolve(result))
-                        .catch(err => reject(err));
+                        .then(result => resolve(null))
+                        .catch(err => {
+                            console.log(err);
+                            resolve(err)
+                        });
                 }
-                else
-                    reject(err);
+                else {
+                    console.log(err);
+                    resolve(err);
+                }
             }
             else
-                resolve(result);
+                resolve(null);
         });
     });
 }
@@ -1127,7 +1159,8 @@ function langs(jsonArr) {
                         json[item] = jsonArr[i][item];
                 }
 
-                resolve(writeToFile(dirs.lang, `en_us.json`, JSON.stringify(json)))
+                queueFile(dirs.lang, `en_us.json`, JSON.stringify(json));
+                resolve(json);
             })
             .catch(err => reject(err));
     });
@@ -1169,9 +1202,16 @@ function etcLangs(list) {
 const blocks = require('./blocks.json');
 const items = require('./items.json');
 const groups = require('./groups');
+const recipes = require('./recipes.json');
 
 function _() {
+    let start = Date.now();
+    let old, now;
+    let ellapsed = 0;
+
     if (!fs.existsSync(`${path}/META-INF`)) {
+        console.log('Copying META-INF and pack.mcmeta, as they were not found.');
+
         fs.mkdirSync(`${path}/META-INF`, { recursive: true });
 
         fs.copyFile(`./mods.toml`, `${path}/META-INF/mods.toml`, (err, result) => {
@@ -1186,18 +1226,65 @@ function _() {
         _();
     }
     else {
+        old = Date.now();
         generateBlocks(blocks)
             .then(() => {
+                now = Date.now();
+                old = now;
+                ellapsed = Math.abs(now - old);
+                console.log(`Finished block data generation in ${ellapsed} ms.`);
+
                 generateItems(items)
                     .then(() => {
+                        now = Date.now();
+                        old = now;
+                        ellapsed = Math.abs(now - old);
+                        console.log(`Finished item data generation in ${ellapsed} ms.`);
+
+                        current = Date.now();
                         etcLangs(groups);
+                        now = Date.now();
+                        old = now;
+                        ellapsed = Math.abs(now - old);
+                        console.log(`Finished group lang generation in ${ellapsed} ms.`);
+
+                        current = Date.now();
                         addTags(tagValues);
+                        now = Date.now();
+                        old = now;
+                        ellapsed = Math.abs(now - old);
+                        console.log(`Finished tag generation in ${ellapsed} ms.`);
 
-                        const list = require('./recipes.json');
-                        for (let i in list)
-                            convert_recipe(list[i]);
+                        current = Date.now();
+                        for (let i in recipes)
+                            convert_recipe(recipes[i]);
+                        now = Date.now();
+                        old = now;
+                        ellapsed = Math.abs(now - old);
+                        console.log(`Finished recipe conversions in ${ellapsed} ms.`);
 
-                        addRecipes(recipes)
+                        current = Date.now();
+                        addrecipeMap(recipeMap)
+                            .then(() => {
+                                now = Date.now();
+                                old = now;
+                                ellapsed = Math.abs(now - old);
+                                console.log(`Finished recipe data generation in ${ellapsed} ms.`);
+
+                                current = Date.now();
+                                runWriteQueue()
+                                    .then(data => {
+                                        let end = Date.now();
+                                        now = Date.now();
+                                        ellapsed = Math.abs(now - old);
+                                        console.log(`Finished writing files in ${ellapsed} ms.`);
+
+                                        ellapsed = Math.abs(end - start);
+                                        console.log(`Finished resource build in ${ellapsed} ms.`);
+                                        console.log(`Passed: ${data.passed}\nFailed: ${data.failed}`);
+                                    })
+                                    .catch(err => console.log(err));
+                            })
                             .catch(err => console.log(err));
                     })
                     .catch(err => console.log(err));
