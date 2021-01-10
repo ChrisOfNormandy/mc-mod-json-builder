@@ -1178,7 +1178,7 @@ function generateBlocks(list) {
     for (let item in list)
         jsons.push(generateBlock(list[item].name, list[item].options, list[item].drops));
 
-    return langs(jsons);
+    return jsons;
 }
 
 function generateItems(list) {
@@ -1186,7 +1186,7 @@ function generateItems(list) {
     for (let item in list)
         jsons.push(generateItem(list[item]));
 
-    return langs(jsons);
+    return jsons;
 }
 
 function etcLangs(list) {
@@ -1194,8 +1194,29 @@ function etcLangs(list) {
     for (let i in list) {
         json[list[i].registryName] = list[i].name;
     }
+    return [json];
+}
 
-    langs([json]);
+const blocks = require('./blocks.json');
+const items = require('./items.json');
+const groups = require('./groups');
+const recipes = require('./recipes.json');
+
+function generateAll() {
+    let jsons = [];
+    
+    const b = generateBlocks(blocks);
+    const i = generateItems(items);
+    const e = etcLangs(groups);
+
+    for (let _ in b)
+        jsons.push(b[_]);
+    for (let _ in i)
+        jsons.push(i[_]);
+    for (let _ in e)
+        jsons.push(e[_]);
+
+    return langs(jsons);
 }
 
 /*
@@ -1206,10 +1227,7 @@ function etcLangs(list) {
     2       Slab
     1       Self
 */
-const blocks = require('./blocks.json');
-const items = require('./items.json');
-const groups = require('./groups');
-const recipes = require('./recipes.json');
+
 
 function _() {
     let start = Date.now();
@@ -1234,69 +1252,52 @@ function _() {
     }
     else {
         old = Date.now();
-        generateBlocks(blocks)
-            .then(() => {
+        generateAll()
+            .then(jsons => {
                 now = Date.now();
                 old = now;
                 ellapsed = Math.abs(now - old);
-                console.log(`Finished block data generation in ${ellapsed} ms.`);
+                console.log(`Finished composing data and langs for ${jsons.length} blocks, items and groups.`);
+                
+                addTags(tagValues);
+                now = Date.now();
+                old = now;
+                ellapsed = Math.abs(now - old);
+                console.log(`Finished tag generation in ${ellapsed} ms.`);
 
-                generateItems(items)
+                current = Date.now();
+                for (let i in recipes)
+                    convert_recipe(recipes[i]);
+                now = Date.now();
+                old = now;
+                ellapsed = Math.abs(now - old);
+                console.log(`Finished recipe conversions in ${ellapsed} ms.`);
+
+                current = Date.now();
+                addrecipeMap(recipeMap)
                     .then(() => {
                         now = Date.now();
                         old = now;
                         ellapsed = Math.abs(now - old);
-                        console.log(`Finished item data generation in ${ellapsed} ms.`);
+                        console.log(`Finished recipe data generation in ${ellapsed} ms.`);
 
                         current = Date.now();
-                        etcLangs(groups);
-                        now = Date.now();
-                        old = now;
-                        ellapsed = Math.abs(now - old);
-                        console.log(`Finished group lang generation in ${ellapsed} ms.`);
-
-                        current = Date.now();
-                        addTags(tagValues);
-                        now = Date.now();
-                        old = now;
-                        ellapsed = Math.abs(now - old);
-                        console.log(`Finished tag generation in ${ellapsed} ms.`);
-
-                        current = Date.now();
-                        for (let i in recipes)
-                            convert_recipe(recipes[i]);
-                        now = Date.now();
-                        old = now;
-                        ellapsed = Math.abs(now - old);
-                        console.log(`Finished recipe conversions in ${ellapsed} ms.`);
-
-                        current = Date.now();
-                        addrecipeMap(recipeMap)
-                            .then(() => {
+                        runWriteQueue()
+                            .then(data => {
+                                let end = Date.now();
                                 now = Date.now();
-                                old = now;
                                 ellapsed = Math.abs(now - old);
-                                console.log(`Finished recipe data generation in ${ellapsed} ms.`);
+                                console.log(`Finished writing files in ${ellapsed} ms.`);
 
-                                current = Date.now();
-                                runWriteQueue()
-                                    .then(data => {
-                                        let end = Date.now();
-                                        now = Date.now();
-                                        ellapsed = Math.abs(now - old);
-                                        console.log(`Finished writing files in ${ellapsed} ms.`);
-
-                                        ellapsed = Math.abs(end - start);
-                                        console.log(`Finished resource build in ${ellapsed} ms.`);
-                                        console.log(`Passed: ${data.passed}\nFailed: ${data.failed}`);
-                                    })
-                                    .catch(err => console.log(err));
+                                ellapsed = Math.abs(end - start);
+                                console.log(`Finished resource build in ${ellapsed} ms.`);
+                                console.log(`Passed: ${data.passed}\nFailed: ${data.failed}`);
                             })
                             .catch(err => console.log(err));
                     })
                     .catch(err => console.log(err));
-            })
-            .catch(e => console.log(e));
+                })
+                .catch(err => console.log(err));
     }
 }
 
