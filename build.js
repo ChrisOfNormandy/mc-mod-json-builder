@@ -1196,11 +1196,10 @@ function etcLangs(list) {
     }
     return [json];
 }
-
-const blocks = require('./blocks.json');
-const items = require('./items.json');
-const groups = require('./groups');
-const recipes = require('./recipes.json');
+const blocks = require('../build_configs/blocks.json');
+const items = require('../build_configs/items.json');
+const groups = require('../build_configs/groups');
+const recipes = require('../build_configs/recipes.json');
 
 function generateAll() {
     let jsons = [];
@@ -1227,7 +1226,6 @@ function generateAll() {
     2       Slab
     1       Self
 */
-
 
 function _() {
     let start = Date.now();

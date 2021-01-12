@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('../build_configs/config.json');
 
 const path = `${config.path}/src/main/resources/`;
 const mod_id = config.mod_id;

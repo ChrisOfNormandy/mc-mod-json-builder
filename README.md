@@ -1,6 +1,6 @@
 # Documentation
 
-You must create the following files in root:
+You must create the following files in a directory one higher than this project, in `/build_configs`:
 
 `config.json`
 ```
