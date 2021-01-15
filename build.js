@@ -891,29 +891,14 @@ function create_loot_table(registryName, drops = { name: 'self', count: 1 }) {
 
 function addTags(map) {
     map.forEach((v, k, m) => {
-        readFile(`${dirs.tags}/blocks`, `${k}.json`, `{"replace": false,"values": []}`)
-            .then(data => {
-                let json = JSON.parse(data);
+        let json = {"replace": false,"values": []}
+        
+        for (let i in v)
+            if (!json.values.includes(`${mod_id}:${v[i]}`))
+                json.values.push(`${mod_id}:${v[i]}`);
 
-                for (let i in v)
-                    if (!json.values.includes(`${mod_id}:${v[i]}`))
-                        json.values.push(`${mod_id}:${v[i]}`);
-
-                queueFile(`${dirs.tags}/blocks`, `${k}.json`, JSON.stringify(json));
-            })
-            .catch(err => console.log(err));
-
-        readFile(`${dirs.tags}/items`, `${k}.json`, `{"replace": false,"values": []}`)
-            .then(data => {
-                let json = JSON.parse(data);
-
-                for (let i in v)
-                    if (!json.values.includes(`${mod_id}:${v[i]}`))
-                        json.values.push(`${mod_id}:${v[i]}`);
-
-                queueFile(`${dirs.tags}/items`, `${k}.json`, JSON.stringify(json));
-            })
-            .catch(err => console.log(err));
+        queueFile(`${dirs.tags}/blocks`, `${k}.json`, JSON.stringify(json));
+        queueFile(`${dirs.tags}/items`, `${k}.json`, JSON.stringify(json));
     });
 }
 
@@ -1092,7 +1077,8 @@ function readFile(path, fileName, defaultText = '') {
 }
 
 function queueFile(path, fileName, str) {
-    console.log(path, fileName);
+    if (debug)
+        console.log(`${path}/${fileName}`);
     const data = {
         path, fileName, str
     };

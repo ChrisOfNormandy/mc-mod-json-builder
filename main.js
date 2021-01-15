@@ -13,7 +13,41 @@ const dirs = {
     lang: `${path}assets/${mod_id}/lang`
 };
 
-const dyes = ['red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'light_blue', 'blue', 'magenta', 'purple', 'pink', 'white', 'light_gray', 'gray', 'black', 'brown'];
+const dyes = [
+    'red',          //1
+    'orange',       //2
+    'yellow',       //4
+    'lime',         //8
+    'green',        //16
+    'cyan',         //32
+    'light_blue',   //64
+    'blue',         //128
+    'magenta',      //256
+    'purple',       //512
+    'pink',         //1024
+    'white',        //2048
+    'light_gray',   //4096
+    'gray',         //8192
+    'black',        //16384
+    'brown'         //32768
+];
+
+function dyeCombo(dye1, dye2) {
+    if (dye1 == dye2)
+        return dye1;
+    
+    let d1 = Math.pow(2, dyes.indexOf(dye1));
+    let d2 = Math.pow(2, dyes.indexOf(dye2));
+
+    switch (d1 + d2) {
+        // Red combos
+        case 5: return dyes[1];
+        case 17: return dyes[15];
+        case 129: return dyes[9];
+        case 2049: return dyes[10];
+        
+    }
+}
 
 const regex = {
     dye: /\{dye\}/,
