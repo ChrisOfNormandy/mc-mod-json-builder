@@ -11,12 +11,12 @@ function write(path, fileName, str) {
                     write(path, fileName, str)
                         .then(result => resolve(null))
                         .catch(err => {
-                            console.log(err);
+                            console.error(err);
                             resolve(err)
                         });
                 }
                 else {
-                    console.log(err);
+                    console.error(err);
                     resolve(err);
                 }
             }

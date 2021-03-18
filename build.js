@@ -67,7 +67,6 @@ function generateBlocks(list) {
         v.map.forEach((v, k, m) => {
             if (!tagValues.has(k))
                 tagValues.set(k, []);
-                console.log(v);
             tagValues.get(k).push(v);
         });
     }
@@ -190,11 +189,11 @@ function _() {
                                 console.log(`Finished resource build in ${ellapsed} ms.`);
                                 console.log(`Passed: ${data.passed}\nFailed: ${data.failed}`);
                             })
-                            .catch(err => console.log(err));
+                            .catch(err => console.error(err));
                     })
-                    .catch(err => console.log(err));
+                    .catch(err => console.error(err));
             })
-            .catch(err => console.log(err));
+            .catch(err => console.error(err));
     }
 }
 
