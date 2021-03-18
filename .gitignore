@@ -1,8 +1,4 @@
 node_modules
 package-lock.json
-config.json
-blocks.json
-groups.js
-recipes.json
-items.json
+build_configs
 temp
