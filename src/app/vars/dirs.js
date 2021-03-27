@@ -7,5 +7,6 @@ module.exports = {
     loot_tables: `${path}data/${mod_id}/loot_tables/blocks`,
     recipes: `${path}data/${mod_id}/recipes`,
     tags: `${path}data/minecraft/tags`,
-    lang: `${path}assets/${mod_id}/lang`
+    lang: `${path}assets/${mod_id}/lang`,
+    meta_inf: `${path}`
 };

@@ -20,13 +20,13 @@ const read = require('./src/app/helpers/files/read');
 const writeQueue = require('./src/app/helpers/files/writeQueue');
 
 const config = require('./build_configs/config.json');
-const { path } = require('./build_configs/config.json');
 const generateBlock = require('./src/app/generators/block');
 const generateItem = require('./src/app/generators/item');
 const addTags = require('./src/app/tags');
 const recipe = require('./src/app/recipe');
 const recipeMap = recipe.recipeMap;
 const dirs = require('./src/app/vars/dirs');
+const meta_inf = dirs.meta_inf;
 const regex = require('./src/app/vars/regex');
 const { mod_id } = require('./src/app/vars/mod');
 
@@ -142,24 +142,24 @@ function _() {
     let old, now;
     let ellapsed = 0;
 
-    if (!fs.existsSync(`${path}/META-INF`)) {
+    if (!fs.existsSync(`${meta_inf}/META-INF`)) {
         console.log('Creating missing dir for META-INF.');
-        fs.mkdir(`${path}/META-INF`, { recursive: true }, (err) => {
+        fs.mkdir(`${meta_inf}/META-INF`, { recursive: true }, (err) => {
             if (err)
                 console.error(err);
             else
                 _();
         });
     }
-    else if (!fs.existsSync(`${path}/META-INF/mods.toml`)) {
+    else if (!fs.existsSync(`${meta_inf}/META-INF/mods.toml`)) {
         console.log('Creating missing file: mods.toml');
-        require('./src/app/toml')(`${path}/META-INF`)
+        require('./src/app/toml')(`${meta_inf}/META-INF`)
             .then(() => _())
             .catch(err => console.error(err));
     }
-    else if (!fs.existsSync(`${path}/pack.mcmeta`)) {
+    else if (!fs.existsSync(`${meta_inf}/pack.mcmeta`)) {
         console.log('Creating missing file: pack.mcmeta');
-        require('./src/app/mcmeta')(path)
+        require('./src/app/mcmeta')(meta_inf)
             .then(() => _())
             .catch(err => console.error(err));
     }
