@@ -1,5 +1,20 @@
 const fs = require('fs');
 
+if (!fs.existsSync('build_configs')) {
+    fs.mkdirSync('build_configs');
+    fs.writeFileSync(`build_configs/blocks.json`, '[]');
+    fs.writeFileSync(`build_configs/config.json`, JSON.stringify({
+        "mod_id": "",
+        "mod_name": "",
+        "author": "",
+        "path": "",
+        "build_path": "./build_configs"
+    }));
+    fs.writeFileSync(`build_configs/groups.json`, '[]');
+    fs.writeFileSync(`build_configs/items.json`, '[]');
+    fs.writeFileSync(`build_configs/recipes.json`, '[]');
+}
+
 const add = require('./src/app/helpers/files/add');
 const read = require('./src/app/helpers/files/read');
 const writeQueue = require('./src/app/helpers/files/writeQueue');
@@ -12,6 +27,8 @@ const addTags = require('./src/app/tags');
 const recipe = require('./src/app/recipe');
 const recipeMap = recipe.recipeMap;
 const dirs = require('./src/app/vars/dirs');
+const regex = require('./src/app/vars/regex');
+const { mod_id } = require('./src/app/vars/mod');
 
 let tagValues = new Map();
 
@@ -84,14 +101,14 @@ function generateItems(list) {
 function etcLangs(list) {
     let json = {};
     for (let i in list)
-        json[list[i].registryName] = list[i].name;
+        json[list[i].registryName.replace(regex.mod_id, mod_id)] = list[i].name;
     return [json];
 }
 
 const buildPath = config.build_path;
 const blocks = require(`${buildPath}/blocks.json`);
 const items = require(`${buildPath}/items.json`);
-const groups = require(`${buildPath}/groups`);
+const groups = require(`${buildPath}/groups.json`);
 const recipes = require(`${buildPath}/recipes.json`);
 
 function generateAll() {
@@ -130,15 +147,15 @@ function _() {
         fs.mkdir(`${path}/META-INF`, { recursive: true }, (err) => {
             if (err)
                 console.error(err);
-            else 
+            else
                 _();
-        });        
+        });
     }
     else if (!fs.existsSync(`${path}/META-INF/mods.toml`)) {
         console.log('Creating missing file: mods.toml');
         require('./src/app/toml')(`${path}/META-INF`)
             .then(() => _())
-            .catch(err => console.error(err));   
+            .catch(err => console.error(err));
     }
     else if (!fs.existsSync(`${path}/pack.mcmeta`)) {
         console.log('Creating missing file: pack.mcmeta');

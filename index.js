@@ -1,1 +1,1 @@
-const adapter = require('./src/app/adapter');
+const adapter = require('./src/adapter');
