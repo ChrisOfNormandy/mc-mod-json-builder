@@ -3,8 +3,6 @@ const { mod_id } = require('./vars/mod');
 const dirs = require('./vars/dirs');
 
 module.exports = (map) => {
-    console.log(map);
-
     let arr1, arr2, block;
     map.forEach((v, k, m) => {
         let json = { "replace": false, "values": [] }
