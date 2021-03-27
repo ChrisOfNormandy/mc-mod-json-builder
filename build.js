@@ -79,7 +79,9 @@ function generateBlocks(list) {
 
     for (let item in list) {
         const v = generateBlock(list[item].name, list[item].options, list[item].drops);
-        jsons.push(v.json);
+
+        for (let block in v.json)
+            jsons.push({[block]: v.json[block]});
 
         v.map.forEach((v, k, m) => {
             if (!tagValues.has(k))
@@ -171,7 +173,6 @@ function _() {
                 old = now;
                 ellapsed = Math.abs(now - old);
                 console.log(`Finished composing data and langs for ${res.blocks.length} blocks, ${res.items.length} items and ${res.groups.length} groups.`);
-                console.log(tagValues);
                 addTags(tagValues);
                 now = Date.now();
                 old = now;

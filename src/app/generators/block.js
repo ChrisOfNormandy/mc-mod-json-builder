@@ -29,80 +29,125 @@ function generateBlock(name, options = 1, drops = { name: 'self', count: 1 }) {
 
             const _displayName = getDisplayName(getDyedName(name, dye));
             const _drops = {
-                name: drops.name === 'self' ? getRegistryName(getDyedName(name, dye)) : getRegistryName(getDyedName(drops.name, dye)),
+                name: drops.name === 'self'
+                    ? getRegistryName(getDyedName(name, dye))
+                    : getRegistryName(getDyedName(drops.name, dye)),
                 count: drops.count
             };
 
             arr.push(generateBlock(_displayName, options, _drops));
         }
 
-        for (let i in arr) {
-            for (let item in arr[i]) {
-                json[item] = arr[i][item];
-            }
-        }
+        arr.forEach(block => {
+            for (let k in block.json)
+                json[k] = block.json[k];
+
+            block.map.forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+
+                v.forEach(b => {
+                    map.get(k).push(b);
+                });
+            });
+        });
     }
     else {
         if (drops.name === 'self')
             drops.name = registryName;
 
         if (options >= 16) {
-            getBlockstate(registryName, 'fence').forEach((v, k, m) => {if (!map.has(k)) map.set(k, []); map.set(k, v)});
+            getBlockstate(registryName, 'fence').forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+                map.get(k).push(v);
+            });
+
             getModel.block(registryName, 'fence');
             getModel.item(registryName, 'fence');
+
             if (options % 2 == 1) {
                 drops.name += '_fence';
                 getRecipe.create(registryName, 'fence', 'wood');
                 getLootTable(`${registryName}_fence`, drops);
             }
+
             json[`block.${mod_id}.${getShortName(registryName)}_fence`] = `${displayName} Fence`;
 
             options -= 16;
         }
         if (options >= 8) {
-            getBlockstate(registryName, 'wall').forEach((v, k, m) => {if (!map.has(k)) map.set(k, []); map.set(k, v)});
+            getBlockstate(registryName, 'wall').forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+                map.get(k).push(v);
+            });
+
             getModel.block(registryName, 'wall');
             getModel.item(registryName, 'wall');
+
             if (options % 2 == 1) {
                 drops.name += '_wall';
                 getRecipe.create(registryName, 'wall', 'rock');
                 getLootTable(`${registryName}_wall`, drops);
             }
+
             json[`block.${mod_id}.${getShortName(registryName)}_wall`] = `${displayName} Wall`;
 
             options -= 8;
         }
         if (options >= 4) {
-            getBlockstate(registryName, 'stairs').forEach((v, k, m) => {if (!map.has(k)) map.set(k, []); map.set(k, v)});
+            getBlockstate(registryName, 'stairs').forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+                map.get(k).push(v);
+            });
+
             getModel.block(registryName, 'stairs');
             getModel.item(registryName, 'stairs');
+
             if (options % 2 == 1) {
                 drops.name += '_stairs';
                 getRecipe.create(registryName, 'stairs', 'rock');
                 getLootTable(`${registryName}_stairs`, drops);
             }
+
             json[`block.${mod_id}.${getShortName(registryName)}_stairs`] = `${displayName} Stairs`;
 
             options -= 4;
         }
         if (options >= 2) {
-            getBlockstate(registryName, 'slab').forEach((v, k, m) => {if (!map.has(k)) map.set(k, []); map.set(k, v)});
+            getBlockstate(registryName, 'slab').forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+                map.get(k).push(v);
+            });
+
             getModel.block(registryName, 'slab');
             getModel.item(registryName, 'slab');
+
             if (options % 2 == 1) {
                 drops.name += '_slab';
                 getRecipe.create(registryName, 'slab', 'rock');
                 getLootTable(`${registryName}_slab`, drops);
             }
+
             json[`block.${mod_id}.${getShortName(registryName)}_slab`] = `${displayName} Slab`;
 
             options -= 2;
         }
         if (options === 1) {
-            getBlockstate(registryName, 'block').forEach((v, k, m) => {if (!map.has(k)) map.set(k, []); map.set(k, v)});
+            getBlockstate(registryName, 'block').forEach((v, k, m) => {
+                if (!map.has(k))
+                    map.set(k, []);
+                map.get(k).push(v);
+            });
+
             getModel.block(registryName, null);
             getModel.item(registryName, null);
+
             getLootTable(registryName, drops);
+
             json[`block.${mod_id}.${getShortName(registryName)}`] = displayName;
         }
     }
