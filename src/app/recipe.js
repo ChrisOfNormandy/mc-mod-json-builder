@@ -22,8 +22,9 @@ function build(r) {
     let res = r.result.split(';');
 
     let key = {};
-    for (let k in r.key) {
-        key[k] = getRegistryName(r.key[k]);
+    if (r.options == 0) {
+        for (let k in r.key)
+            key[k] = getRegistryName(r.key[k].item);
     }
 
     if (regex.dye.test(r.pattern) || regex.dye.test(r.result)) {
