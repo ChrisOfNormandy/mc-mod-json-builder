@@ -1,4 +1,5 @@
 const { getRegistryName, getShortName, getDyedName, getDyeItemName } = require('./helpers/names');
+const getCraftingType = require('./helpers/crafting');
 const { mod_id } = require('./vars/mod');
 const dyes = require('./vars/dyes');
 const regex = require('./vars/regex');
